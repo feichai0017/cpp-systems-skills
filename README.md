@@ -1,6 +1,6 @@
 # cpp-systems-skills
 
-面向 C++ 服务、缓存、存储与推理基础设施的 Agent Skills。目标是明确所有权和错误合同、控制抽象成本，并让评审与性能结论有可检查的证据。
+面向 C++ 服务、缓存、存储与推理基础设施的 Agent Skills。日常编码以简化实现、代码规范和语义命名为重点，保留必要的所有权、错误与并发边界；评审与性能结论须有可检查的证据。
 
 以 [DuckDB 的工程实践](skills/cpp-core/references/duckdb.md) 为主要 C++ 参考，重点吸收断言边界、安全包装、pin 生命周期与数据表示设计；项目已有错误策略、基础类型和格式仍优先。
 
@@ -12,14 +12,14 @@
 
 | 技能 | 使用场景 | 关键约束 |
 | --- | --- | --- |
-| [cpp-core](skills/cpp-core/SKILL.md) | 日常编写、修改 C++ | 先复用仓库和已有库、语义命名、值语义、资源 owner、类型不变量与显式错误 |
+| [cpp-core](skills/cpp-core/SKILL.md) | 日常编写、修改 C++ | 默认简化实现、遵循项目规范、准确命名；先复用现有能力，保留必要安全边界 |
 | [cpp-lifetime](skills/cpp-lifetime/SKILL.md) | 生命周期、异步、并发、SHM 与 I/O | 借用有效期、发布与回收、取消/完成竞争、跨边界合同 |
 | [cpp-simplify](skills/cpp-simplify/SKILL.md) | 精简代码、清理冗余检查与包装 | 删除检查需要保证来源；抽象按职责判断，不按调用次数 |
 | [cpp-review](skills/cpp-review/SKILL.md) | PR/MR、堆叠分支、本地改动评审 | 真实 base、分层 diff、有触发条件和影响的发现 |
 | [cpp-validation](skills/cpp-validation/SKILL.md) | 构建、回归、sanitizer、静态分析 | 风险对应验证、项目工具配置、执行结果与限制 |
 | [cpp-performance](skills/cpp-performance/SKILL.md) | 性能问题、benchmark 与数据路径 | 同等工作量、实际完成计时、可比基线、实测与推断分开 |
 
-日常编码以 `cpp-core` 为底座；专项任务选择对应技能，不要求每次加载全部六个。专项技能重复少量必要边界，以便单独安装，不依赖其他技能或专有工具。
+日常编码以 `cpp-core` 为底座，普通写码默认检查实现是否直接、写法是否符合规范、命名是否准确，无需额外要求精简。专项任务选择对应技能，不要求每次加载全部六个；`cpp-simplify` 用于专门的精简任务。专项技能重复少量必要边界，以便单独安装，不依赖其他技能或专有工具。
 
 ## 自动选择
 

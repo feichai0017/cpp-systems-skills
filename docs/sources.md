@@ -1,6 +1,14 @@
 # 参考来源与改写边界
 
-整理日期：2026-10-18。入口来自用户给出的比较材料；下面记录来源和适配理由，不将社区文章当作 C++ 语言标准。
+整理日期：2026-10-18。C++ 工程规范以 DuckDB 官方贡献指南和相关实现为主要参考，其他社区技能提供组织与审查方向。下面记录来源和适配理由，不将任何项目约定当作 C++ 语言标准。
+
+## 主要工程参考：DuckDB
+
+[DuckDB 工程参考](../skills/cpp-core/references/duckdb.md) 记录固定提交 `1b4c3e54ba3625bac56ad184f0ce642a8d2bfbd5` 的贡献指南、受检查的容器包装、`BufferHandle` 与 vector 表示接口，以及本合集的迁移判断。
+
+已阅读列出的源码；没有构建整个 DuckDB，也没有使用其项目成熟度或 benchmark 为本项目证明性能。错误策略、基础类型、格式化与测试框架保持项目自身约定。
+
+## 技能组织参考
 
 | 来源 | 采用的方向 | 本合集的适配 |
 | --- | --- | --- |
@@ -15,9 +23,16 @@ ECC 与 karpathy-guidelines 的原始用户链接分别重定向到上表地址�
 
 ## 实现参考
 
-[复用与源码参考](../skills/cpp-core/references/reuse-and-precedents.md) 按问题列出 Folly、Boost.Interprocess、Seastar、Tokio 和 Crossbeam 的源码入口。已核对这些入口中的相关实现，索引用于发现机制与前提，不代表它们适合任意项目。
+[复用与源码参考](../skills/cpp-core/references/reuse-and-precedents.md) 在 DuckDB 工程参考之外，按问题补充 Folly、Boost.Interprocess、Seastar、Tokio 和 Crossbeam 的源码入口。此前已核对这些入口中的相关实现，索引用于发现机制与前提，不代表它们适合任意项目。
 
 这些入口指向移动分支。实际采用时记录本次读取的 commit/tag、文件/符号与本地差异。没有复制这些项目的代码，也不以其成熟度或上游 benchmark 作为本项目的正确性或性能证据。
+
+## Codex 自动选择
+
+- [官方技能说明](https://learn.chatgpt.com/docs/build-skills)：按 description 选用技能、隐式调用策略和配置范围。
+- [全局与项目 AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md)：个人默认约定、项目覆盖与启动时加载。
+
+本合集用显式允许隐式调用的元数据配合简短的全局指令示例；没有实现或宣称存在固定的技能路由算法。
 
 ## 技术文档入口
 

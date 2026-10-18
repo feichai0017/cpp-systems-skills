@@ -8,6 +8,8 @@ import sys
 import tempfile
 import unittest
 
+import yaml
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SCOPE = ROOT / "skills" / "cpp-review" / "scripts" / "review_scope.py"
@@ -213,6 +215,20 @@ class PackageLinksTest(unittest.TestCase):
         errors, count = validator.validate(self.root)
         self.assertEqual(errors, [])
         self.assertEqual(count, 6)
+
+    def test_disabled_missing_or_string_invocation_policy_is_rejected(self):
+        path = self.root / "skills/cpp-core/agents/openai.yaml"
+        original = yaml.safe_load(path.read_text(encoding="utf-8"))
+        for value in [False, "true", None]:
+            with self.subTest(policy=value):
+                config = dict(original)
+                if value is None:
+                    config.pop("policy", None)
+                else:
+                    config["policy"] = {"allow_implicit_invocation": value}
+                path.write_text(yaml.safe_dump(config), encoding="utf-8")
+                errors, _ = validator.validate(self.root)
+                self.assertTrue(any("must explicitly allow implicit invocation" in error for error in errors), errors)
 
 
 if __name__ == "__main__":

@@ -47,6 +47,9 @@ def validate(root):
             errors.append(f"{label}: entrypoint exceeds this collection's 200-line budget")
         try:
             config = yaml.safe_load((entry.parent / "agents" / "openai.yaml").read_text(encoding="utf-8"))
+            policy = config.get("policy") if isinstance(config, dict) else None
+            if not isinstance(policy, dict) or policy.get("allow_implicit_invocation") is not True:
+                errors.append(f"{label}: collection skills must explicitly allow implicit invocation")
             interface = config["interface"]
             if not isinstance(interface.get("display_name"), str) or not interface["display_name"].strip():
                 errors.append(f"{label}: missing display name")

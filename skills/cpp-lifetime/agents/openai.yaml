@@ -2,3 +2,5 @@ interface:
   display_name: "C++ 生命周期与并发"
   short_description: "追踪资源创建、借用、发布、完成与回收，检查并发和跨进程边界"
   default_prompt: "用 $cpp-lifetime 检查当前路径的所有权、异步完成和安全回收。"
+policy:
+  allow_implicit_invocation: true

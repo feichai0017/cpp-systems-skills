@@ -2,6 +2,8 @@
 
 面向 C++ 服务、缓存、存储与推理基础设施的 Agent Skills。目标是明确所有权和错误合同、控制抽象成本，并让评审与性能结论有可检查的证据。
 
+以 [DuckDB 的工程实践](skills/cpp-core/references/duckdb.md) 为主要 C++ 参考，重点吸收断言边界、安全包装、pin 生命周期与数据表示设计；项目已有错误策略、基础类型和格式仍优先。
+
 中文规则正文，标准 `SKILL.md` 目录结构；每个技能自包含，可单独安装。项目现有 `AGENTS.md`、构建方式、`Status`/`Result`、命名与格式配置优先。不会要求升级语言标准、切换异常策略或全仓重命名。
 
 ## 技能选择
@@ -16,6 +18,23 @@
 | [cpp-performance](skills/cpp-performance/SKILL.md) | 性能问题、benchmark 与数据路径 | 同等工作量、实际完成计时、可比基线、实测与推断分开 |
 
 日常编码以 `cpp-core` 为底座；专项任务选择对应技能，不要求每次加载全部六个。专项技能重复少量必要边界，以便单独安装，不依赖其他技能或专有工具。
+
+## 自动选择
+
+六个技能都显式设置 `policy.allow_implicit_invocation: true`。Codex 可根据任务与 `description` 的匹配自动选用，无需每次写 `$cpp-core`；描述的开头保留最关键的场景词。`default_prompt` 只是手动调用的起始提示，不负责路由。[官方技能说明](https://learn.chatgpt.com/docs/build-skills)
+
+如果希望“日常写 C++ 默认使用 cpp-core”成为个人默认约定，将 [全局指令片段](examples/AGENTS.codex-global.md) 合并到 `${CODEX_HOME:-$HOME/.codex}/AGENTS.md`，保留原有内容。它让写码任务默认使用底座、专项按场景加载；单靠允许隐式调用并不保证每轮都选中某个技能。[全局指令说明](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
+
+| 自然语言任务（无需技能名） | 预期选择 |
+| --- | --- |
+| “给这个 C++ 类加一个查询接口” | `cpp-core` |
+| “修复回调晚到导致的 use-after-free” | `cpp-core` + `cpp-lifetime` |
+| “清理这段 C++ 的多余包装和重复检查” | `cpp-core` + `cpp-simplify` |
+| “审查这个 C++ MR 相对父分支的 diff” | `cpp-review` |
+| “排查这个 C++ target 的 sanitizer 失败” | `cpp-validation`，实际改代码时补充 `cpp-core` |
+| “分析这段 C++ 读路径的 p99 与拷贝成本” | `cpp-performance`，实际改代码时补充 `cpp-core` |
+
+安装脚本只安装技能，不代替用户修改全局指令。全局 `AGENTS.md` 在新会话/运行启动时加载；技能文件支持自动刷新，未显示更新时重启 Codex。局部项目指令仍可覆盖全局默认；配置校验不等于真实任务选择的统计评估。
 
 ## 安装到 Codex
 
@@ -91,7 +110,9 @@ GitHub Actions 在 Python 3.10 和 3.12 上运行相同检查。自动检查覆�
 
 [原始代码案例](evals/fixtures/README.md) 把执行输入和评审判据分开。模型只接收选定案例和所需技能，不能读取评审判据；预期结果中包含无需修改代码的场景。
 
-[本轮独立试用记录](evals/2026-10-18-smoke.md) 记录三个案例的实际结果及限制，不作为统计通过率。
+[自然语言选择案例](evals/automatic-selection.md) 单独检查未点名技能时的选择和边界；元数据通过不代表这些案例已经过模型评估。
+
+[此前独立试用记录](evals/2026-10-18-smoke.md) 记录三个案例在其输入摘要所对应版本下的实际结果及限制，不作为统计通过率，也不代表之后的自动选择和 DuckDB 参考增补已重新经过模型试用。
 
 ## 设计与来源
 

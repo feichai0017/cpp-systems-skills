@@ -2,3 +2,8 @@
 __pycache__/
 *.pyc
 .DS_Store
+
+# Evaluation outputs are local artifacts, not maintained evaluation inputs.
+/evals/runs/
+/evals/results/
+/evals/artifacts/

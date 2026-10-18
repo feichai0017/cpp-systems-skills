@@ -21,11 +21,16 @@ ECC 与 karpathy-guidelines 的原始用户链接分别重定向到上表地址�
 
 本合集没有复制上游全文或 C++ 示例，规则、案例和辅助脚本重新编写。后续如引入上游代码或文档片段，应检查对应版本的许可与署名要求；本仓库的许可不替代上游许可。
 
-## 实现参考
+## 项目参考与基础库
 
-[复用与源码参考](../skills/cpp-core/references/reuse-and-precedents.md) 在 DuckDB 工程参考之外，按问题补充 Folly、Boost.Interprocess、Seastar、Tokio 和 Crossbeam 的源码入口。此前已核对这些入口中的相关实现，索引用于发现机制与前提，不代表它们适合任意项目。
+[复用与源码参考](../skills/cpp-core/references/reuse-and-precedents.md) 保留本地查找、外部源码核对和 Rust 机制迁移的方法，分别按用途进入以下两个包内索引：
 
-这些入口指向移动分支。实际采用时记录本次读取的 commit/tag、文件/符号与本地差异。没有复制这些项目的代码，也不以其成熟度或上游 benchmark 作为本项目的正确性或性能证据。
+- [项目与实现参考](../skills/cpp-core/references/project-references.md)：DuckDB 为主，LLVM 补充语义命名、库分层与借用接口；LevelDB、RocksDB、Arrow、Seastar 按存储、内存和并发机制选择。Tokio semaphore、Crossbeam epoch 继续作为所有权机制的补充。
+- [基础库选型](../skills/cpp-core/references/library-selection.md)：fmt、spdlog、Abseil、Boost.Asio、Boost.Interprocess、Folly、GoogleTest 与 Google Benchmark 的官方入口，以及地址稳定性、ABI、运行时和资源回收的适配条件。
+
+新增条目依据官方规范、使用文档与相关接口；推荐用途是本合集的工程判断，没有对所有候选做完整源码审计、构建或性能比较。此前核对过的 Folly ScopeGuard、Boost offset_ptr、Seastar sharded、Tokio semaphore 和 Crossbeam Guard 的具体入口保留在对应索引中。
+
+除 DuckDB 的固定源码快照外，这些入口多指向移动分支或最新文档。实际采用时记录本次读取的 commit/tag、文件/符号与本地差异。没有复制这些项目的代码，也不以其成熟度或上游 benchmark 作为本项目的正确性或性能证据。
 
 ## Codex 自动选择
 

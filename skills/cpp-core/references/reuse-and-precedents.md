@@ -5,7 +5,7 @@
 ## 先查当前工程
 
 1. 用 `rg` 搜职责、符号、错误信息和类似调用，读最近的实现与测试。名称不同的代码也可能承担同一职责。
-2. 查构建清单、锁文件、vendor 目录和实际 include，确认库版本、已启用模块与编译宏。包已安装不等于目标已经链接它。
+2. 查构建清单、锁文件、vendor 目录和实际 include，确认库版本、已启用模块与编译宏；也检查当前标准库和工具链能否直接满足需求。包已安装不等于目标已经链接它。
 3. 对照所需合同：返回与错误语义、owner/borrow、回调线程、取消/关闭、容量与复杂度。优先扩展现有合适组件的小缺口。
 4. 本地能力足够就停止研究。记录实际采用的符号即可；不要求每次列候选表。
 
@@ -27,21 +27,13 @@
 
 完成选择后进入实现；只有新证据表明候选不适用时才扩大搜索。
 
-## 按问题选择入口
+## 按目的选择入口
 
-一般 C++ 工程规范以 [DuckDB](duckdb.md) 为主要外部参考；下面是特定机制的补充入口。选择“规范样例”与引入某个库是不同决定，项目已有实现仍优先。
+- 一般 C++ 工程规范以 [DuckDB](duckdb.md) 为主要外部参考。
+- 比较接口、代码风格或存储/并发/内存机制时，读 [项目与实现参考](project-references.md) 中对应的项目；LLVM 是工程规范的重要补充。
+- 需要可直接调用的基础能力时，读 [基础库选型](library-selection.md) 中对应的模块，确认能否使用已安装版本。
 
-以下链接用于定位机制，不是指定依赖清单。固定到本次实际核对的版本后再引用，不能据此宣称某实现更快。
-
-| 问题 | 源码入口 | 可借鉴内容与边界 |
-| --- | --- | --- |
-| 资源释放和失败回滚 | [Folly ScopeGuard](https://github.com/facebook/folly/blob/main/folly/ScopeGuard.h) | 构造、移动、dismiss 与析构；已有库可用时直接复用 |
-| 不同进程的映射地址 | [Boost.Interprocess offset_ptr](https://github.com/boostorg/interprocess/blob/develop/include/boost/interprocess/offset_ptr.hpp) | 相对地址与布局假设；对象相对偏移不等于 region-relative offset |
-| 分片服务的所有权与关闭 | [Seastar sharded](https://github.com/scylladb/seastar/blob/master/include/seastar/core/sharded.hh) | 分片创建、跨分片调用、停止；其 runtime 和线程模型不能默认移植 |
-| 可跨任务移动的额度 | [Tokio semaphore](https://github.com/tokio-rs/tokio/blob/master/tokio/src/sync/semaphore.rs) | `OwnedSemaphorePermit` 持有额度并在 Drop 归还；不等于远端 lease 已获得 release ACK |
-| 读保护和延迟回收 | [Crossbeam epoch Guard](https://github.com/crossbeam-rs/crossbeam/blob/master/crossbeam-epoch/src/guard.rs) | guard 与延迟释放；线程内 epoch 不提供进程死亡恢复 |
-
-优先追踪具体所有权与失败路径，不照搬框架的命名或类层次。项目有更近的同类实现时，先读它。
+这些入口用于定位具体职责，不是指定依赖清单。优先追踪所有权与失败路径，不照搬框架的命名或类层次；项目有更近的同类实现时先读它。
 
 ## 借鉴 Rust 的设计
 

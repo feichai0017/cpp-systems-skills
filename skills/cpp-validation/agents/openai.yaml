@@ -1,0 +1,4 @@
+interface:
+  display_name: "C++ 构建与验证"
+  short_description: "根据改动风险执行构建、回归与静态检查，准确区分结果和未验证边界"
+  default_prompt: "用 $cpp-validation 选择并执行当前 C++ 改动需要的检查。"

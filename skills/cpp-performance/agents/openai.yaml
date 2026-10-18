@@ -1,0 +1,4 @@
+interface:
+  display_name: "C++ 性能分析"
+  short_description: "沿实际数据路径设计同等工作量的实验，区分实测收益与待验证推断"
+  default_prompt: "用 $cpp-performance 分析当前性能问题，确认数据路径和可比基线。"

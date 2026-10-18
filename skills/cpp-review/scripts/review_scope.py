@@ -8,6 +8,9 @@ import shlex
 import subprocess
 import sys
 
+if __name__ == "__main__" and sys.version_info < (3, 10):
+    sys.exit("review_scope: Python 3.10 or newer is required")
+
 
 class ScopeError(Exception):
     pass

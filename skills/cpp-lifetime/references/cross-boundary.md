@@ -6,6 +6,7 @@
 
 - 共享地址空间中的 offset/handle 与进程内指针分开表达；验证映射标识、布局版本、偏移、长度、对齐与整数溢出。
 - 跨进程表示不要默认包含 `std::string`、进程内 `shared_ptr` 或普通 STL 容器。allocator、对象布局、ABI 与同步原语必须有明确的进程共享合同。
+- 参考开源队列、guard 或 epoch 实现时，先核对其地址空间、回收参与者和退出假设。线程内正确不证明跨进程安全；普通析构不能替代另一进程已停止访问的确认。
 - 不能仅凭类型是 `std::atomic` 就推定目标平台支持进程间同步；确认平台、构造方式与原语承诺。
 - generation/epoch 用于区分重用或重启前后的身份；检查 identity 后还要保证使用期间无法释放/替换。单次比较不能消除 check-then-use 竞争。
 - lease/read guard/refcount/epoch reclamation 分别按项目协议证明作用；不要混淆“句柄有效”和“底层页在整个读取期间存活”。

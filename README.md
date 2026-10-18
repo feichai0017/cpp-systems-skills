@@ -8,7 +8,7 @@
 
 | 技能 | 使用场景 | 关键约束 |
 | --- | --- | --- |
-| [cpp-core](skills/cpp-core/SKILL.md) | 日常编写、修改 C++ | 值语义、资源 owner、类型不变量、显式错误、最小必要实现 |
+| [cpp-core](skills/cpp-core/SKILL.md) | 日常编写、修改 C++ | 先复用仓库和已有库、语义命名、值语义、资源 owner、类型不变量与显式错误 |
 | [cpp-lifetime](skills/cpp-lifetime/SKILL.md) | 生命周期、异步、并发、SHM 与 I/O | 借用有效期、发布与回收、取消/完成竞争、跨边界合同 |
 | [cpp-simplify](skills/cpp-simplify/SKILL.md) | 精简代码、清理冗余检查与包装 | 删除检查需要保证来源；抽象按职责判断，不按调用次数 |
 | [cpp-review](skills/cpp-review/SKILL.md) | PR/MR、堆叠分支、本地改动评审 | 真实 base、分层 diff、有触发条件和影响的发现 |
@@ -19,16 +19,18 @@
 
 ## 安装到 Codex
 
-需要 Python 3.10+。仓库为私有，克隆前需要拥有访问权限及有效的 GitHub 登录。
+安装脚本需要 Python 3.10+。仓库公开，HTTPS 克隆不需要 GitHub 登录或 `gh`。评审范围工具与测试支持 Git 2.20+。
 
 ```sh
-gh repo clone feichai0017/cpp-systems-skills
+git clone https://github.com/feichai0017/cpp-systems-skills.git
 cd cpp-systems-skills
 python3 scripts/install.py --dest "${CODEX_HOME:-$HOME/.codex}/skills" --dry-run
 python3 scripts/install.py --dest "${CODEX_HOME:-$HOME/.codex}/skills"
 ```
 
 安装工具只复制本地技能目录，不联网、不修改项目配置。它在复制前检查全部目标；任一同名目录或链接已存在就拒绝覆盖。`--dry-run` 不创建目录。磁盘/权限等复制途中错误可能留下部分新目录，报错后应检查实际结果。
+
+先用 `python3 --version` 确认版本；默认解释器过旧时，在下面的命令中使用已安装的 `python3.10` 或更新版本。工具会明确拒绝不支持的 Python 版本。
 
 也可以只安装两个：
 
@@ -47,6 +49,8 @@ python3 scripts/install.py --dest "${CODEX_HOME:-$HOME/.codex}/skills" \
 
 ```text
 用 $cpp-core 实现这个接口，遵循仓库现有 Status/Result 和命名约定。
+
+用 $cpp-core 设计这个共享读组件，先查现有依赖，再核对相似开源实现的适用前提。
 
 用 $cpp-lifetime 检查取消请求与晚到回调的竞争，指出 owner 和最后使用点。
 
@@ -81,9 +85,13 @@ python3 -m venv .venv
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-GitHub Actions 运行相同检查。自动检查覆盖技能格式、内部链接、UI 元数据、Git 范围解析与安装不覆盖行为。它们不证明模型必然遵循指令，也不代表任何业务 C++ 项目已通过验证。
+GitHub Actions 在 Python 3.10 和 3.12 上运行相同检查。自动检查覆盖技能格式、每个技能的本地引用边界、UI 元数据、Git 范围解析与安装不覆盖行为。测试会单独安装每个技能再检查引用。它们不证明模型必然遵循指令，也不代表任何业务 C++ 项目已通过验证。
 
 [行为评估案例](evals/behavior-cases.md) 提供独立试用的输入与判据；新增规则应优先由真实误用推动。模型评估的执行记录应与结构校验分开。
+
+[原始代码案例](evals/fixtures/README.md) 把执行输入和评审判据分开。模型只接收选定案例和所需技能，不能读取评审判据；预期结果中包含无需修改代码的场景。
+
+[本轮独立试用记录](evals/2026-10-18-smoke.md) 记录三个案例的实际结果及限制，不作为统计通过率。
 
 ## 设计与来源
 

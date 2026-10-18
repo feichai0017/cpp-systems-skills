@@ -2,6 +2,7 @@ import importlib.util
 import json
 from pathlib import Path
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -20,6 +21,7 @@ def load_module(name, path):
 
 
 installer = load_module("installer", ROOT / "scripts" / "install.py")
+validator = load_module("validator", ROOT / "scripts" / "validate.py")
 
 
 class ReviewScopeTest(unittest.TestCase):
@@ -28,16 +30,17 @@ class ReviewScopeTest(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.repo = Path(self.temp.name) / "repo with spaces"
         self.repo.mkdir()
-        self.git("init", "-b", "main")
+        self.git("init")
+        self.git("symbolic-ref", "HEAD", "refs/heads/main")
         self.git("config", "user.name", "Scope Test")
         self.git("config", "user.email", "scope@example.invalid")
         self.git("config", "commit.gpgsign", "false")
         self.write("same.cc", "int base = 0;\n")
         self.commit("base")
-        self.git("switch", "-c", "stack-parent")
+        self.git("checkout", "-b", "stack-parent")
         self.write("parent.cc", "int parent = 1;\n")
         self.commit("lower layer")
-        self.git("switch", "-c", "feature")
+        self.git("checkout", "-b", "feature")
         self.write("same.cc", "int committed = 1;\n")
         self.write("branch.cc", "int branch = 1;\n")
         self.commit("current layer")
@@ -97,10 +100,10 @@ class ReviewScopeTest(unittest.TestCase):
         self.assertEqual(set(report["layers"][0]["paths"]), {"branch.cc", "renamed file.cc", "same.cc"})
 
     def test_unmerged_paths_are_explicit(self):
-        self.git("switch", "stack-parent")
+        self.git("checkout", "stack-parent")
         self.write("same.cc", "int conflicting = 4;\n")
         self.commit("conflict on base")
-        self.git("switch", "feature")
+        self.git("checkout", "feature")
         result = subprocess.run(["git", "-C", str(self.repo), "merge", "stack-parent"], capture_output=True)
         self.assertNotEqual(result.returncode, 0)
         report = self.run_scope("--scope", "worktree")
@@ -160,6 +163,56 @@ class InstallTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             installer.install(source, destination)
         self.assertFalse(destination.exists())
+
+
+class PackageLinksTest(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name) / "collection"
+        shutil.copytree(ROOT / "skills", self.root / "skills",
+                        ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+
+    def test_every_skill_keeps_its_references_when_installed_alone(self):
+        for source in sorted((ROOT / "skills").iterdir()):
+            if not (source / "SKILL.md").is_file():
+                continue
+            with self.subTest(skill=source.name):
+                isolated = Path(self.temp.name) / source.name
+                installer.install(ROOT / "skills", isolated / "skills", [source.name])
+                errors, count = validator.validate(isolated)
+                self.assertEqual(errors, [])
+                self.assertEqual(count, 1)
+
+    def test_sibling_skill_link_is_rejected_even_when_target_exists(self):
+        entry = self.root / "skills/cpp-core/SKILL.md"
+        with entry.open("a", encoding="utf-8") as output:
+            output.write("\n[Other skill](../cpp-lifetime/references/cross-boundary.md)\n")
+        errors, _ = validator.validate(self.root)
+        self.assertTrue(any("leaves package boundary" in error for error in errors), errors)
+
+    def test_nested_reference_cannot_depend_on_collection_docs(self):
+        (self.root / "docs").mkdir()
+        (self.root / "docs/shared.md").write_text("Collection documentation", encoding="utf-8")
+        reference = self.root / "skills/cpp-lifetime/references/cross-boundary.md"
+        with reference.open("a", encoding="utf-8") as output:
+            output.write("\n[Collection docs](../../../docs/shared.md)\n")
+        errors, _ = validator.validate(self.root)
+        self.assertTrue(any("leaves package boundary" in error for error in errors), errors)
+
+    def test_missing_reference_is_reported(self):
+        entry = self.root / "skills/cpp-core/SKILL.md"
+        with entry.open("a", encoding="utf-8") as output:
+            output.write("\n[Missing](references/missing.md)\n")
+        errors, _ = validator.validate(self.root)
+        self.assertTrue(any("broken local link" in error for error in errors), errors)
+
+    def test_collection_docs_can_link_to_skills(self):
+        (self.root / "README.md").write_text(
+            "[Core](skills/cpp-core/SKILL.md)\n", encoding="utf-8")
+        errors, count = validator.validate(self.root)
+        self.assertEqual(errors, [])
+        self.assertEqual(count, 6)
 
 
 if __name__ == "__main__":

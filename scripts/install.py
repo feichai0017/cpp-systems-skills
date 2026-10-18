@@ -6,6 +6,9 @@ from pathlib import Path
 import shutil
 import sys
 
+if __name__ == "__main__" and sys.version_info < (3, 10):
+    sys.exit("install: Python 3.10 or newer is required")
+
 
 ROOT = Path(__file__).resolve().parents[1]
 

@@ -6,6 +6,9 @@ import re
 import sys
 from urllib.parse import unquote, urlsplit
 
+if __name__ == "__main__" and sys.version_info < (3, 10):
+    sys.exit("validate: Python 3.10 or newer is required")
+
 import yaml
 
 
@@ -57,8 +60,13 @@ def validate(root):
             errors.append(f"{label}: invalid UI metadata: {error}")
 
     for doc in sorted(root.rglob("*.md")):
-        if any(part.startswith(".") for part in doc.relative_to(root).parts):
+        relative = doc.relative_to(root)
+        if any(part.startswith(".") for part in relative.parts):
             continue
+        # Only this directory is copied when a skill is installed on its own.
+        link_root = root
+        if len(relative.parts) >= 3 and relative.parts[0] == "skills":
+            link_root = root / relative.parts[0] / relative.parts[1]
         text = doc.read_text(encoding="utf-8")
         # Links in these authored documents use plain Markdown link destinations.
         for target in re.findall(r"\[[^\]]+\]\(([^\s)]+)\)", text):
@@ -66,8 +74,10 @@ def validate(root):
             if parsed.scheme or target.startswith("#"):
                 continue
             path = (doc.parent / unquote(parsed.path)).resolve()
-            if not path.is_relative_to(root.resolve()) or not path.exists():
-                errors.append(f"{doc.relative_to(root)}: broken/escaping local link: {target}")
+            if not path.is_relative_to(link_root.resolve()):
+                errors.append(f"{relative}: local link leaves package boundary: {target}")
+            elif not path.exists():
+                errors.append(f"{relative}: broken local link: {target}")
         if re.search(r"^\s*\[(?:TODO|TBD):", text, re.MULTILINE):
             errors.append(f"{doc.relative_to(root)}: unfinished scaffold placeholder")
     return errors, len(skills)

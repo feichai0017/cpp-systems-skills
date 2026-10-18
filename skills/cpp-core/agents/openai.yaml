@@ -1,4 +1,4 @@
 interface:
   display_name: "C++ 日常编码"
-  short_description: "遵循项目约定，以明确所有权、类型不变量和显式错误完成必要实现"
-  default_prompt: "用 $cpp-core 完成当前 C++ 修改，遵循项目现有约定并验证行为。"
+  short_description: "先复用现有实现，以语义命名、明确所有权和类型不变量完成必要修改"
+  default_prompt: "用 $cpp-core 完成当前 C++ 修改，先查现有代码和依赖，遵循项目约定并验证行为。"

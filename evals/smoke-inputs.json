@@ -1,0 +1,25 @@
+[
+  {
+    "case": "reuse",
+    "skill": "cpp-core",
+    "input_sha256": "a5998de9263537585bb5d34ff3a5fae998fcf0db8c9e51459b7b4baf27d8445f",
+    "changed_files": [
+      "operation.cc"
+    ]
+  },
+  {
+    "case": "borrow",
+    "skill": "cpp-simplify",
+    "input_sha256": "fca24a5ac62e1bae06a421422df2cd4f10359db732d2743248fe4f24f606782f",
+    "changed_files": []
+  },
+  {
+    "case": "naming",
+    "skill": "cpp-core",
+    "input_sha256": "09cc5d2418c4510c6f362873558f4cfca16fe2335d4f99c95802c6e9e796937e",
+    "changed_files": [
+      "check.cc",
+      "config.hpp"
+    ]
+  }
+]

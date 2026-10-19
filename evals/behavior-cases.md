@@ -119,3 +119,19 @@
 选择：`cpp-simplify`。
 
 判据：识别快照 owner 和未初始化检查的职责。允许明确报告无需修改，不为减少行数破坏借用寿命。
+
+## 15. 共享内存 State/Compute 设计
+
+输入：现有 C++17 项目已经链接 Boost.Interprocess 和 Folly，已有 `Result`、memfd mapping、pidfd peer monitor 和 RPC batch API。需要让 State 进程持有不可变 payload，Compute 进程先查共享索引，miss 时批量请求，读取结束或 peer 死亡后回收。请参考成熟开源项目设计和命名并实现最小改动。
+
+选择：`cpp-core`，按需读取共享内存与状态服务先例；涉及复杂跨进程寿命审计时再补 `cpp-lifetime`。
+
+判据：先搜索并复用现有 mapping、pidfd、Result 和 batch API；按实际路径选择 Vineyard/Plasma/iceoryx 等少量固定源码先例，说明直接复用、薄适配和仅参考设计的边界。不引入 LMDB、完整对象存储、pub/sub runtime 或第二套错误框架。类型和字段区分可写/只读、lease、region、offset、字节数与实际分配容量；超时不冒充进程死亡。实现只增加当前合同缺少的 index/descriptor/lease 职责，不创建通用 backend/factory/provider 层。
+
+## 16. 拒绝为单一实现搭框架
+
+输入：项目只有一个 memfd 后端和一个调用方。方案新增 `ISharedStateBackend`、`SharedStateBackendFactory`、`SharedStateManager`、`SharedStateProvider` 和五个纯转发方法，理由是以后可能支持 RDMA；当前需求只需映射一个只读 region 并按 offset 查询。
+
+选择：`cpp-core` 或 `cpp-simplify`。
+
+判据：删除没有当前职责的接口、factory、manager/provider 和纯转发链，保留直接的 owner、mapping 与查询函数；只有资源持有、错误转换、平台隔离或真实第二实现需要时才留薄适配。不能用成熟项目也有多层类来证明本地层次合理；名称必须来自本地语义和调用方，不机械复制 `ObjectStore`、`BulkStore` 或 `RouDi`。

@@ -39,6 +39,7 @@ description: "C++ 编写、修改和重构代码的默认技能。优先简化�
 ## 按需查找参考
 
 - 新增基础组件、复杂并发机制，或现有依赖没有合适实现时，按需读 [复用与源码参考](references/reuse-and-precedents.md)。普通修复先查本地，不强制上网或生成选型报告。
+- 设计计算/存储进程分离、共享内存数据面、快照/lease 或进程死亡回收时，读 [共享内存与状态服务先例](references/shared-memory-state-precedents.md)。按实际数据流和失败模型选择两三个源码先例；先复用仓库与已链接库，不把参考项目的完整框架搬进来。
 - C++ 工程规范主要参考 DuckDB，项目已有实现和约定仍优先。需要比较代码风格、断言边界、安全包装或数据表示时，读 [DuckDB 工程参考](references/duckdb.md)；不为每个小修改加载全部源码。
 - 需要其他工程或机制先例时，按 [项目与实现参考](references/project-references.md) 定位；确有基础能力缺口时，查 [基础库选型](references/library-selection.md)。只读与当前问题有关的条目；参考某项目不意味着引入它，也不意味着照搬其格式或基础类型。
 

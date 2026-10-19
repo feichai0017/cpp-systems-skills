@@ -27,10 +27,13 @@ ECC 与 karpathy-guidelines 的原始用户链接分别重定向到上表地址�
 
 - [项目与实现参考](../skills/cpp-core/references/project-references.md)：DuckDB 为主，LLVM 补充语义命名、库分层与借用接口；LevelDB、RocksDB、Arrow、Seastar 按存储、内存和并发机制选择。Tokio semaphore、Crossbeam epoch 继续作为所有权机制的补充。
 - [基础库选型](../skills/cpp-core/references/library-selection.md)：fmt、spdlog、Abseil、Boost.Asio、Boost.Interprocess、Folly、GoogleTest 与 Google Benchmark 的官方入口，以及地址稳定性、ABI、运行时和资源回收的适配条件。
+- [共享内存与状态服务先例](../skills/cpp-core/references/shared-memory-state-precedents.md)：固定提交的 Vineyard daemon/IPC/mmap 与 Blob 生命周期、Ray Plasma 对象生命周期和 wire descriptor、LMDB 读快照/reader table、iceoryx loan/take/release 与崩溃 cleanup，以及 iceoryx2 的所有权和阶段命名。
 
 新增条目依据官方规范、使用文档与相关接口；推荐用途是本合集的工程判断，没有对所有候选做完整源码审计、构建或性能比较。此前核对过的 Folly ScopeGuard、Boost offset_ptr、Seastar sharded、Tokio semaphore 和 Crossbeam Guard 的具体入口保留在对应索引中。
 
 除 DuckDB 的固定源码快照外，这些入口多指向移动分支或最新文档。实际采用时记录本次读取的 commit/tag、文件/符号与本地差异。没有复制这些项目的代码，也不以其成熟度或上游 benchmark 作为本项目的正确性或性能证据。
+
+共享内存先例另行固定并阅读了 Vineyard `0cbaada9db11d0268aa166b91cb7503bab0ccf86`、Ray `6f01d617120885918b783086eedf712ebdb5f441`、LMDB `253ba5219172531b719bc14fee6b4aa1a2a5c4a5`、iceoryx `9f9fb0d359f1805cdd38006c8aba6af6dbc2209e` 和 iceoryx2 `9f1ddda76a51bf836c6cffe9cefe0006d0e74fae` 的相关文件。它们用于缩小职责、状态和命名判断，不表示建议新增这些依赖；未复制上游代码。
 
 ## Codex 自动选择
 

@@ -13,6 +13,7 @@
 
 - 根据问题检索机制和失败模式，例如“bounded queue shutdown”“shared memory relative offset”“permit cancellation”，不要只搜“best C++ library”。
 - 先看少量最相关的成熟实现，再读调用方、关键测试和必要的变更记录。README 和星数只能帮助定位，不能证明合同或性能。
+- 按当前场景的数据路径、所有权和失败恢复选择先例，不因技术标签相同就研究整个项目。共享内存和 State/Compute 类问题从 [共享内存与状态服务先例](shared-memory-state-precedents.md) 选择入口。
 - 从官方仓库核对代码。记录实际读过的 commit/tag、文件/符号、采用的机制及本地差异；没有读到的实现不要写成已验证依据。
 - 核对语言标准、工具链、异常/RTTI、线程/进程模型、ABI、allocator、平台与依赖规模。最新文档中的 API 未必存在于项目固定版本。
 - 直接调用库、引入新依赖、复制适配源码、只参考设计是不同动作。比较总成本；不要为一个局部能力引入整个运行时。
@@ -30,6 +31,7 @@
 ## 按目的选择入口
 
 - 一般 C++ 工程规范以 [DuckDB](duckdb.md) 为主要外部参考。
+- 计算/存储进程分离、共享内存对象、快照 lease 和进程死亡回收，读 [共享内存与状态服务先例](shared-memory-state-precedents.md)；它给出固定源码版本、可迁移命名及不应照搬的框架层。
 - 比较接口、代码风格或存储/并发/内存机制时，读 [项目与实现参考](project-references.md) 中对应的项目；LLVM 是工程规范的重要补充。
 - 需要可直接调用的基础能力时，读 [基础库选型](library-selection.md) 中对应的模块，确认能否使用已安装版本。
 

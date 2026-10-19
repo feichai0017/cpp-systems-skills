@@ -6,6 +6,8 @@
 
 ## C++ 项目
 
+共享内存 daemon、计算/存储进程分离、对象 seal/lease 和死亡回收有单独的 [场景化源码索引](shared-memory-state-precedents.md)，包括 Vineyard、Ray Plasma、LMDB、iceoryx 和 iceoryx2。不要把它们作为一组候选依赖；按当前失败模型选择局部机制。
+
 | 项目与入口 | 适合研究的问题 | 迁移边界 |
 | --- | --- | --- |
 | [DuckDB 工程参考](duckdb.md) | 日常工程规范、断言与输入错误、安全包装、buffer pin 和向量表示 | 主要外部规范参考；沿用当前项目的错误策略、类型和格式 |

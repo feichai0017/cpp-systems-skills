@@ -6,6 +6,8 @@
 
 [项目与实现参考](skills/cpp-core/references/project-references.md) 按问题补充 LLVM、LevelDB、RocksDB、Arrow 与 Seastar；[基础库选型](skills/cpp-core/references/library-selection.md) 提供 Abseil、fmt、spdlog、Boost、Folly 及测试工具的复用入口和前提。它们随 `cpp-core` 安装，仅在相应任务中读取，不是统一依赖清单。
 
+[共享内存与状态服务先例](skills/cpp-core/references/shared-memory-state-precedents.md) 按实际场景定位 Vineyard、Ray Plasma、LMDB、iceoryx 和 iceoryx2 的固定源码版本。它区分可直接复用的库、必要的薄适配和只应借鉴的架构，并要求满足当前合同后停止扩展抽象。
+
 中文规则正文，标准 `SKILL.md` 目录结构；每个技能自包含，可单独安装。项目现有 `AGENTS.md`、构建方式、`Status`/`Result`、命名与格式配置优先。不会要求升级语言标准、切换异常策略或全仓重命名。
 
 ## 技能选择
@@ -72,6 +74,8 @@ python3 scripts/install.py --dest "${CODEX_HOME:-$HOME/.codex}/skills" \
 用 $cpp-core 实现这个接口，遵循仓库现有 Status/Result 和命名约定。
 
 用 $cpp-core 设计这个共享读组件，先查现有依赖，再核对相似开源实现的适用前提。
+
+用 $cpp-core 设计 State/Compute 共享内存读路径，按失败模型选择源码先例，只实现现有库没有覆盖的职责。
 
 用 $cpp-lifetime 检查取消请求与晚到回调的竞争，指出 owner 和最后使用点。
 

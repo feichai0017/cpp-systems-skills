@@ -14,6 +14,16 @@ description: "C++ 构建或测试失败、验证方案、sanitizer、静态分�
 - 有 `compile_commands.json` 时确认它对应当前源码与配置。静态分析解析错误先解决真实 include、宏与生成文件，不批量屏蔽。
 - 保留既有 `.clang-format` / `.clang-tidy` 和命名约定；不默认写入 `Checks: '*'` 或全局 `WarningsAsErrors: '*'`。
 
+常见构建系统的入口（以项目脚本和 CI 为准）：
+
+| 构建系统 | 识别标志 | 构建与测试 | 编译数据库 |
+| --- | --- | --- | --- |
+| CMake | `CMakeLists.txt`、`CMakePresets.json` | `cmake --preset <name>`、`cmake --build --preset <name>`、`ctest --preset <name>`；没有 presets 时 `cmake -S . -B build -G Ninja` 后 `cmake --build build`、`ctest --test-dir build --output-on-failure` | `CMAKE_EXPORT_COMPILE_COMMANDS=ON` |
+| Blade | 根目录 `BLADE_ROOT`、各目录 `BUILD` | `blade build //dir/...`、`blade test //dir/...`、`-p debug` 切换配置 | `blade dump --compdb --to-file compile_commands.json` |
+| Bazel | `MODULE.bazel`/`WORKSPACE`、`BUILD.bazel` | `bazel build //...`、`bazel test //...` | 项目自带的生成规则 |
+
+Blade 的 missing/unused dependency 和 `hdrs` 诊断属于构建结果的一部分，按依赖声明问题处理，不靠全局 include 路径或关闭检查消除。CMake 的配置阶段错误（找不到包、目标名拼错）与编译错误分开报告。
+
 ## 按风险选择验证
 
 | 改动 | 首选验证 | 条件适用时补充 |

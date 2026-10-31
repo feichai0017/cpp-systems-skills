@@ -1,0 +1,41 @@
+# 可选的 .clang-tidy 起点：只启用能直接对应现代写法、误报较少的检查。
+# 合并到项目前确认 clang-tidy 版本与 compile_commands.json，先只对改动文件运行：
+#   clang-tidy -p build/debug --config-file=.clang-tidy path/to/changed.cc
+# 不要直接把它设为全仓 WarningsAsErrors；存量代码按模块逐步清理。
+Checks: >
+  -*,
+  bugprone-dangling-handle,
+  bugprone-move-forwarding-reference,
+  bugprone-string-constructor,
+  bugprone-suspicious-string-compare,
+  bugprone-unused-return-value,
+  bugprone-use-after-move,
+  cppcoreguidelines-pro-type-cstyle-cast,
+  cppcoreguidelines-special-member-functions,
+  cppcoreguidelines-virtual-class-destructor,
+  misc-unconventional-assign-operator,
+  modernize-avoid-bind,
+  modernize-deprecated-headers,
+  modernize-loop-convert,
+  modernize-make-shared,
+  modernize-make-unique,
+  modernize-pass-by-value,
+  modernize-redundant-void-arg,
+  modernize-use-bool-literals,
+  modernize-use-default-member-init,
+  modernize-use-equals-default,
+  modernize-use-equals-delete,
+  modernize-use-nullptr,
+  modernize-use-override,
+  modernize-use-using,
+  performance-move-const-arg,
+  performance-noexcept-move-constructor,
+  performance-unnecessary-copy-initialization,
+  performance-unnecessary-value-param
+# C++20/23 项目且 clang-tidy 版本支持时，可再按需加入：
+#   modernize-use-starts-ends-with, modernize-use-designated-initializers,
+#   modernize-use-ranges, modernize-use-std-format, modernize-use-std-print
+CheckOptions:
+  cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor: true
+  modernize-loop-convert.MinConfidence: reasonable
+HeaderFilterRegex: ''

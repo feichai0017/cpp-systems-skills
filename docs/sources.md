@@ -50,3 +50,13 @@ ECC 与 karpathy-guidelines 的原始用户链接分别重定向到上表地址�
 - [clang-tidy](https://clang.llvm.org/extra/clang-tidy/index.html)
 
 工具行为需要与项目安装版本匹配。链接用于查证具体问题，不要求每次技能执行都访问或加载全部文档。
+
+## 现代写法、结构与构建（2026-10-31）
+
+- 现代写法：[C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines)、[Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html)（核对时要求 C++20）、[Chromium C++ 特性规定](https://chromium.googlesource.com/chromium/src/+/main/styleguide/c++/c++-features.md)、[Abseil Tips of the Week](https://abseil.io/tips/)、[cppreference 编译器支持表](https://en.cppreference.com/w/cpp/compiler_support)。规则由本合集重新编写，示例为原创代码。
+- DuckDB 写法规则：固定快照 `1b4c3e54ba3625bac56ad184f0ce642a8d2bfbd5` 的 CONTRIBUTING “C++ Guidelines” 一节；该快照的 `CMakeLists.txt` 要求 C++17 或更高。
+- 代码库语言标准：读取各项目默认分支的顶层构建文件，Abseil 与 LevelDB 为 C++17，LLVM 要求 C++17，RocksDB 默认 C++20，Folly、Arrow、Velox、Mooncake（`mooncake-common/common.cmake`）、3FS 为 C++20，Seastar 要求 C++20 起，ClickHouse 为 C++23。这些是移动分支上的观察，使用时重新核对。
+- CMake：[cmake-buildsystem](https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html)、[cmake-presets](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html)、[FetchContent](https://cmake.org/cmake/help/latest/module/FetchContent.html)、[vcpkg 清单模式](https://learn.microsoft.com/vcpkg/concepts/manifest-mode)、[Conan 2 CMake 集成](https://docs.conan.io/2/integrations/cmake.html)。参考中的示例项目（以导入目标替身代替 fmt/Abseil）在 Docker `gcc:14` 镜像中用 CMake 3.31 完成 presets 配置、构建、ctest、`CMAKE_COMPILE_WARNING_AS_ERROR` 构建与安装导出，并确认警告接口目标未进入导出集。
+- Blade：[chen3feng/blade-build](https://github.com/chen3feng/blade-build) 固定提交 `b95bff3e4e35c3b53265c7522e42e1aedf84f3f8` 的 `doc/en` 下 C/C++ 规则、BUILD 文件、配置、命令行、测试、工作区、vcpkg、IDL 与编辑器支持文档。没有在 Blade 工作区中实际构建示例。
+- clang-tidy：`examples/clang-tidy.modern.yaml` 中的检查名与可选检查用 clang-tidy 22.1.7 的 `--list-checks` 核对过。
+- 标准库差异：`std::atomic<std::shared_ptr<T>>` 在 GCC 14 的 libstdc++ 中可用，在 LLVM 22 的 libc++ 中触发 “requires trivially copyable” 静态断言；GCC 14 在 `-std=c++14 -pedantic -Werror` 下接受 `[[nodiscard]]`，clang 22 拒绝。

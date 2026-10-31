@@ -39,6 +39,8 @@ description: "C++ 延迟、吞吐、内存或数据搬运优化，benchmark/prof
 
 优先处理证据支持的主导成本。保留 ownership、校验边界、retry、ACK、quota、completion 和 read-lifetime 保证；移除等待要证明替代依赖保持正确顺序。
 
+常见的语言层成本先用 profiler 或计数确认再改：可预知大小时缺少 `reserve` 导致反复扩容；按值传递大对象或在 sink 之外复制；借用足够时构造临时 `std::string`/`std::vector`（可用 `string_view`/`span`）；热循环中的 `std::function`、虚调用或 `shared_ptr` 引用计数；节点型容器的分配与指针追逐（可评估 flat 容器，但注意地址稳定性合同）。改动后保持语义与寿命合同，并用同一基准对比。
+
 不预设 SIMD、lock-free、巨页、特定 allocator 或额外缓存一定更优。引入时说明成本模型、适用负载及实测结果。
 
 优化通用机制前查已有组件和依赖的配置能力。参考开源优化时核对版本、硬件与负载前提；上游 benchmark 不能替代本项目测量，也不能证明新增依赖的总成本更低。

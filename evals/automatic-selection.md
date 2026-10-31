@@ -15,5 +15,9 @@
 | 将这一行 C++ 注释的 KiB 拼写改对 | `cpp-core` 的轻量部分；不生成并发审计和 benchmark |
 | 修复这个 Python 脚本的参数解析 | 不因同目录存在 C++ 文件而加载 cpp 系列 |
 | 更新 C++ skill 仓库的安装说明 | 属于技能/文档维护；不仅因出现 C++ 关键词就启动全部 C++ 技能 |
+| Add a method to this C++ class that returns the cached entry | `cpp-core`；英文描述同样触发编码底座 |
+| 用现代 C++ 重写这个模块的资源管理 | `cpp-core`；涉及跨线程或异步释放时补充 `cpp-lifetime` |
+| 给这个 CMake 库加一个 fmt 依赖并新增源文件 | `cpp-core`；按目标与 `PUBLIC`/`PRIVATE` 修改，不启动性能或评审流程 |
+| Blade 构建报 missing dependency，帮我修 | `cpp-validation` 定位，修改 BUILD 或代码时补充 `cpp-core` |
 
 选择可随证据变化；判据是加载是否有任务依据、是否漏掉用户设定的编码底座，以及是否造成无关工作，不能机械要求永远使用固定数量的技能。

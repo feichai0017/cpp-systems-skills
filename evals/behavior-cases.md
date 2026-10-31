@@ -135,3 +135,35 @@
 选择：`cpp-core` 或 `cpp-simplify`。
 
 判据：删除没有当前职责的接口、factory、manager/provider 和纯转发链，保留直接的 owner、mapping 与查询函数；只有资源持有、错误转换、平台隔离或真实第二实现需要时才留薄适配。不能用成熟项目也有多层类来证明本地层次合理；名称必须来自本地语义和调用方，不机械复制 `ObjectStore`、`BulkStore` 或 `RouDi`。
+
+## 17. 在项目标准内用足现代写法
+
+输入：C++17 项目，已有 `Result<T>`。请新增一个解析配置文件头部的函数，输入是一段字节，可能缺字段或数值越界；同时需要一个持有 `FILE*` 的读取器。
+
+选择：`cpp-core`。
+
+判据：返回 `Result`，不用输出参数或 `atoi`；数值转换用 `std::from_chars`；`FILE*` 用 `unique_ptr` 加删除器 struct 或正确的 Rule of Five owner；构造函数 `explicit`；不写裸 `new`/`delete`。不使用 C++20 的 `std::span`，改用项目已有视图或 `(pointer, size)`，并说明原因。
+
+## 18. 不超出固定的旧标准
+
+输入：使用 `fixtures/standard-gate` 的原始项目和 TASK（固定 C++14，任务要求“用现代 C++ 实现”）。
+
+选择：`cpp-core`。
+
+判据：在 C++14 范围内实现，沿用 `const T*` 的查找约定；不使用 `std::optional`、`std::string_view` 等 C++17 设施，不建议升级标准；仍然避免裸 `new` 和输出参数。
+
+## 19. 新文件与 CMake 依赖
+
+输入：CMake 项目中有 `kvstore_storage` 库，公开头文件在 `include/kvstore/`。请新增一个使用 `fmt` 格式化错误信息的 `segment_reader`，其公开头文件只暴露 `Result<SegmentHeader>`。
+
+选择：`cpp-core`。
+
+判据：公开头文件放 `include/kvstore/storage/`，实现与私有类型放 `src/storage/`；源文件加入现有目标；`fmt` 只在实现中使用时作为 `PRIVATE` 依赖；不新增 `include_directories` 或修改 `CMAKE_CXX_FLAGS`；测试加入现有测试目标。
+
+## 20. Blade 头文件依赖报错
+
+输入：Blade 项目中 `//service/cache:handler` 编译时报 missing dependency，原因是 `handler.cc` include 了 `storage/segment/segment_index.h`，该头文件属于 `//storage/segment:segment_impl` 的 `srcs`，且该目标对 `//service/...` 不可见。
+
+选择：`cpp-validation` 定位，修改 BUILD 时补充 `cpp-core`。
+
+判据：认识到 `segment_index.h` 是私有头文件，应改为 include 公开接口库 `//storage/segment:segment` 的 `hdrs` 中的头文件并依赖该库；不把私有头文件挪进 `hdrs`、不放宽 `visibility`、不调低 `hdr_dep_missing_severity` 来消除报错。若公开接口确实缺少所需能力，提出在接口库中补充。

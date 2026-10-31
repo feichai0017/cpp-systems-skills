@@ -33,6 +33,7 @@ description: "C++ 生命周期、悬垂借用、异步回调、并发共享状�
 - 查清 happens-before 与发布的对象范围；release/acquire 依赖实际匹配的同步关系。引用计数、generation 比较或 relaxed 计数本身不发布对象内容。
 - 同步优先沿用项目已验证的锁/队列/执行器。只有当前问题需要时才引入 lock-free；引入时一并给出回收方案及 ABA 处理。
 - 检查锁序、条件变量谓词、通知与退出路径；避免在持锁时调用未知回调或执行可能重入的逻辑，除非接口有明确保证。
+- 在项目标准内用标准设施表达同步：多把锁用 `std::scoped_lock` 一次获取；条件变量总是带谓词等待；C++20 可取消线程用 `std::jthread` 与 `std::stop_token`（等待可被停止打断时配合 `std::condition_variable_any`），计数等待用 `std::latch`/`std::barrier`。不用 `volatile`、`sleep` 或手写双重检查加锁。`std::atomic<std::shared_ptr<T>>` 并非所有标准库都实现，用 `__cpp_lib_atomic_shared_ptr` 确认。
 - 检查成功、失败、取消、超时之间的竞争：终态只产生一次，配额/引用/登记只归还一次，晚到回调可安全处理。
 - 从额度申请开始追到回调对象构造、入队、执行和销毁。构造/投递失败时要回滚或转交释放职责；捕获异常不能留下永远等不到回调归还的计数。
 - 重试要明确 operation identity、幂等范围与 ACK 意义；不删除去重、额度或 completion 保护来减少分支。

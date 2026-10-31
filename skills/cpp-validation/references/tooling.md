@@ -19,6 +19,29 @@
 
 clang-tidy 的编译数据库、宏和生成文件必须匹配目标；分析失败与源代码诊断分开处理。自动修复先看 diff，尤其是跨文件和语言标准相关修改。
 
+项目没有 clang-tidy 配置、但需要检查新代码的写法时，可以只对改动文件运行一组误报较少的检查，结果只用于本次改动，不写入项目配置：
+
+```sh
+clang-tidy -p build/debug path/to/changed.cc --checks='-*,bugprone-use-after-move,bugprone-dangling-handle,cppcoreguidelines-special-member-functions,cppcoreguidelines-virtual-class-destructor,cppcoreguidelines-pro-type-cstyle-cast,modernize-use-nullptr,modernize-use-override,modernize-use-using,modernize-make-unique,modernize-pass-by-value,modernize-loop-convert,modernize-use-equals-default,modernize-use-equals-delete,performance-move-const-arg,performance-noexcept-move-constructor,performance-unnecessary-value-param'
+```
+
+这些检查在 clang-tidy 22 中核对过；旧版本缺少某项时去掉该项。C++20/23 项目在工具版本支持时可以再加 `modernize-use-ranges`、`modernize-use-std-format`、`modernize-use-designated-initializers`、`modernize-use-starts-ends-with`。
+
+## 编译警告
+
+项目已有警告配置时沿用。需要为新代码临时加严时，GCC/Clang 可用：
+
+| 选项 | 发现的问题 |
+| --- | --- |
+| `-Wall -Wextra -Wpedantic` | 常见错误与非标准扩展 |
+| `-Wshadow` | 局部变量遮蔽成员或外层变量 |
+| `-Wnon-virtual-dtor` | 多态基类缺少虚析构函数 |
+| `-Wold-style-cast` | C 风格转换 |
+| `-Wpessimizing-move`、`-Wredundant-move` | `return std::move(local)` 一类阻碍拷贝消除的写法 |
+| `-Wconversion`、`-Wsign-conversion` | 隐式窄化与符号转换；存量代码中通常很吵，只对新文件评估 |
+
+`-Werror` 放在 CI 配置（CMake 的 `CMAKE_COMPILE_WARNING_AS_ERROR`，Blade 的 `cc_config(warnings=...)`）中统一控制，不写死在单个目标里。第三方头文件通过 `-isystem`（CMake 的导入目标默认如此，Blade 用 `system_include = True`）排除在外。
+
 ## 官方参考
 
 - [Clang AddressSanitizer](https://clang.llvm.org/docs/AddressSanitizer.html)

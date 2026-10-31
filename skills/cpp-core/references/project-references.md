@@ -2,7 +2,32 @@
 
 在需要比较接口、工程风格或某个系统机制时使用。日常小修改先看当前项目；根据问题选少量条目，不依次研究整张表。
 
-资料核对日期：2026-10-18。以下是官方文档与相关接口的定位索引，推荐用途是本合集的工程判断；不代表完成了这些项目的全量源码审计、构建或性能验证。实际采用前按 [源码研究流程](reuse-and-precedents.md) 固定版本、读取相关实现与测试。
+资料核对日期：2026-10-18；现代写法参考与各项目语言标准核对日期：2026-10-31。以下是官方文档与相关接口的定位索引，推荐用途是本合集的工程判断；不代表完成了这些项目的全量源码审计、构建或性能验证。实际采用前按 [源码研究流程](reuse-and-precedents.md) 固定版本、读取相关实现与测试。
+
+## 现代 C++ 写法参考
+
+学习某个标准下的地道写法时，读与目标项目标准一致的代码库，不拿 C++23 项目的写法要求 C++17 项目。
+
+| 规范或代码库 | 语言标准（以默认分支构建文件为准） | 适合参考 |
+| --- | --- | --- |
+| [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) | 不限 | 资源管理（R）、接口（I）、函数参数（F.15–F.21）、并发（CP）的规则与理由 |
+| [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html) | C++20 | 头文件、include 顺序、命名、所有权与特性取舍的完整规范 |
+| [Chromium 的 C++ 特性规定](https://chromium.googlesource.com/chromium/src/+/main/styleguide/c++/c++-features.md) | 按标准逐条列出 | 每个 C++11–C++23 特性允许、禁止或待定的理由；判断某特性是否值得采用 |
+| [Abseil Tips of the Week](https://abseil.io/tips/) | — | 参数传递、`string_view`、移动语义、初始化等具体问题的短文 |
+| [Abseil](https://github.com/abseil/abseil-cpp) | C++17 | 基础库接口设计、`Status`/`StatusOr`、容器与哈希 |
+| [LLVM](https://github.com/llvm/llvm-project) | C++17 | 大型代码库的库分层、`ArrayRef`/`StringRef` 借用、错误处理 `Expected` |
+| [LevelDB](https://github.com/google/leveldb) | C++17 | 小而完整的存储引擎接口 |
+| [DuckDB](https://github.com/duckdb/duckdb) | C++17 起 | 工程规范、断言边界、buffer 生命周期（见下表与 DuckDB 参考） |
+| [RocksDB](https://github.com/facebook/rocksdb) | 默认 C++20 | 存储引擎的选项结构、`Status`、迭代器与快照 |
+| [Folly](https://github.com/facebook/folly) | C++20 | 并发组件、协程（`folly::coro`）、`ScopeGuard` |
+| [Apache Arrow C++](https://github.com/apache/arrow/tree/main/cpp) | C++20 | `Result<T>`、`ARROW_RETURN_NOT_OK` 一类错误传播、内存池与 buffer |
+| [Velox](https://github.com/facebookincubator/velox) | C++20 | 向量化执行、内存池、类型系统 |
+| [Mooncake](https://github.com/kvcache-ai/Mooncake) | C++20 | KV cache 传输与存储服务的工程组织 |
+| [3FS](https://github.com/deepseek-ai/3FS) | C++20 | 基于 `folly::coro` 协程的分布式文件系统 |
+| [Seastar](https://github.com/scylladb/seastar) | C++20 起，支持 C++23 | future/协程、每核分片、关闭顺序 |
+| [ClickHouse](https://github.com/ClickHouse/ClickHouse) | C++23 | 大型代码库中较新标准特性的实际使用 |
+
+规范之间有冲突时（例如异常、命名、`auto` 的使用范围），以当前项目约定为准，只吸收与本项目约束一致的条目。
 
 ## C++ 项目
 

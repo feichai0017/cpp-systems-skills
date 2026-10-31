@@ -15,6 +15,23 @@ DuckDB 是本合集的主要 C++ 工程参考。当前项目的合同、代码�
 - 优先通过能观察问题的稳定行为写回归，再按必要性进入底层；不把 DuckDB 的 SQL 测试框架变成其他项目的规定。
 - 它对查询终止使用异常的策略，不覆盖项目现有 `Status` / `Result`；`idx_t`、公共字段布局、大小写、后缀和格式化版本也不是跨项目默认值。
 
+## 具体写法规则
+
+该快照的构建要求 C++17 或更高（`CMakeLists.txt` 拒绝更低的 `CMAKE_CXX_STANDARD`）。贡献指南的 “C++ Guidelines” 一节列出了以下规则（核对日期 2026-10-31）：
+
+| 规则 | 能否作为通用默认 |
+| --- | --- |
+| 不用 `malloc`，`new`/`delete` 视为坏味道，使用智能指针 | 可以 |
+| 强烈优先 `unique_ptr`，只在绝对需要时用 `shared_ptr` | 可以 |
+| 尽可能使用 `const` | 可以，但不为此破坏必要的移动或赋值 |
+| 不导入命名空间（如 `using namespace std`） | 可以 |
+| 覆盖虚函数时不重复 `virtual`，总是写 `override` 或 `final` | 可以 |
+| 参数优先引用而不是指针；非平凡对象用 `const` 引用传递 | 可以；需要保存的参数仍可按值接收再移动 |
+| 尽可能使用 range-for | 可以 |
+| `if` 和循环总是加花括号，避免单行嵌套 | 可以，具体排版跟随项目格式化配置 |
+| 全部使用定长整数，偏移/下标/计数用 `idx_t` | 不可以，属于 DuckDB 自身约定 |
+| 类内先写 public 构造与成员变量，再写 public 方法，最后是 private 部分 | 不可以，跟随项目自己的类布局约定 |
+
 ## 安全包装有职责
 
 [duckdb::vector](https://github.com/duckdb/duckdb/blob/1b4c3e54ba3625bac56ad184f0ce642a8d2bfbd5/src/include/duckdb/common/vector.hpp) 的索引、空容器访问与删除入口带有受模板参数/编译条件控制的检查，不只是把调用转发给标准容器。

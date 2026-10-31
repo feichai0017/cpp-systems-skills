@@ -1,10 +1,12 @@
 # cpp-systems-skills
 
-面向 C++ 服务、缓存、存储与推理基础设施的 Agent Skills。日常编码以简化实现、代码规范和语义命名为重点，保留必要的所有权、错误与并发边界；评审与性能结论须有可检查的证据。
+面向 C++ 服务、缓存、存储与推理基础设施的 Agent Skills。日常编码在项目的 C++ 标准内使用现代写法，以简化实现、代码规范和语义命名为重点，正确组织头文件、源文件与构建依赖，保留必要的所有权、错误与并发边界；评审与性能结论须有可检查的证据。
+
+[现代 C++ 写法](skills/cpp-core/references/modern-idioms.md) 按 C++17/20/23 列出可用设施、参数与所有权写法和常见旧式写法的替换；[设计范式](skills/cpp-core/references/design-paradigms.md) 说明值语义、构造即有效、RAII owner、选项结构、variant 状态、依赖注入、不可变快照与 Pimpl 的适用前提。[项目结构与文件摆放](skills/cpp-core/references/project-layout.md)、[CMake 参考](skills/cpp-core/references/build-cmake.md) 和 [Blade 参考](skills/cpp-core/references/build-blade.md) 覆盖目录布局、include 规则、模块分层、目标与依赖声明、第三方依赖管理和常用命令。推荐示例在 clang 22 与 GCC 14 下编译通过，CMake 示例项目完成过配置、构建、测试与安装导出。
 
 以 [DuckDB 的工程实践](skills/cpp-core/references/duckdb.md) 为主要 C++ 参考，重点吸收断言边界、安全包装、pin 生命周期与数据表示设计；项目已有错误策略、基础类型和格式仍优先。
 
-[项目与实现参考](skills/cpp-core/references/project-references.md) 按问题补充 LLVM、LevelDB、RocksDB、Arrow 与 Seastar；[基础库选型](skills/cpp-core/references/library-selection.md) 提供 Abseil、fmt、spdlog、Boost、Folly 及测试工具的复用入口和前提。它们随 `cpp-core` 安装，仅在相应任务中读取，不是统一依赖清单。
+[项目与实现参考](skills/cpp-core/references/project-references.md) 列出 Core Guidelines、Google/Chromium 规范与按语言标准标注的现代代码库（Abseil、LLVM、RocksDB、Folly、Arrow、Velox、Mooncake、3FS、Seastar、ClickHouse 等）；[基础库选型](skills/cpp-core/references/library-selection.md) 先列标准库设施，再按职责给出 Abseil、fmt、spdlog、Boost、Folly、序列化、并发、分配器、压缩、测试与追踪等库的复用入口和前提。它们随 `cpp-core` 安装，仅在相应任务中读取，不是统一依赖清单。
 
 [共享内存与状态服务先例](skills/cpp-core/references/shared-memory-state-precedents.md) 按实际场景定位 Vineyard、Ray Plasma、LMDB、iceoryx 和 iceoryx2 的固定源码版本。它区分可直接复用的库、必要的薄适配和只应借鉴的架构，并要求满足当前合同后停止扩展抽象。
 
@@ -14,11 +16,11 @@
 
 | 技能 | 使用场景 | 关键约束 |
 | --- | --- | --- |
-| [cpp-core](skills/cpp-core/SKILL.md) | 日常编写、修改 C++ | 默认简化实现、遵循项目规范、准确命名；先复用现有能力，保留必要安全边界 |
+| [cpp-core](skills/cpp-core/SKILL.md) | 日常编写、修改 C++，新增文件与构建依赖 | 项目标准内的现代写法、简化实现、项目规范、准确命名；正确的文件位置与公开/私有依赖；先复用现有能力，保留必要安全边界 |
 | [cpp-lifetime](skills/cpp-lifetime/SKILL.md) | 生命周期、异步、并发、SHM 与 I/O | 借用有效期、发布与回收、取消/完成竞争、跨边界合同 |
 | [cpp-simplify](skills/cpp-simplify/SKILL.md) | 精简代码、清理冗余检查与包装 | 删除检查需要保证来源；抽象按职责判断，不按调用次数 |
 | [cpp-review](skills/cpp-review/SKILL.md) | PR/MR、堆叠分支、本地改动评审 | 真实 base、分层 diff、有触发条件和影响的发现 |
-| [cpp-validation](skills/cpp-validation/SKILL.md) | 构建、回归、sanitizer、静态分析 | 风险对应验证、项目工具配置、执行结果与限制 |
+| [cpp-validation](skills/cpp-validation/SKILL.md) | 构建（CMake、Blade 等）、回归、sanitizer、静态分析 | 风险对应验证、项目工具配置、执行结果与限制 |
 | [cpp-performance](skills/cpp-performance/SKILL.md) | 性能问题、benchmark 与数据路径 | 同等工作量、实际完成计时、可比基线、实测与推断分开 |
 
 日常编码以 `cpp-core` 为底座，普通写码默认检查实现是否直接、写法是否符合规范、命名是否准确，无需额外要求精简。专项任务选择对应技能，不要求每次加载全部六个；`cpp-simplify` 用于专门的精简任务。专项技能重复少量必要边界，以便单独安装，不依赖其他技能或专有工具。
@@ -89,6 +91,8 @@ python3 scripts/install.py --dest "${CODEX_HOME:-$HOME/.codex}/skills" \
 ```
 
 如需写入项目级约定，参考 [项目接入示例](examples/AGENTS.cpp.md)，根据仓库事实选择内容后合并；不要覆盖已有 `AGENTS.md`。
+
+项目还没有静态检查配置时，可以从 [clang-tidy 示例](examples/clang-tidy.modern.yaml) 选择检查项：它只启用与现代写法直接对应、误报较少的检查，检查名在 clang-tidy 22 下核对过。先对改动文件运行，不要直接设为全仓 `WarningsAsErrors`。
 
 ## 工具与验证
 

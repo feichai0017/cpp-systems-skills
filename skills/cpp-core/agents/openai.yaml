@@ -1,6 +1,6 @@
 interface:
   display_name: "C++ 日常编码"
-  short_description: "以简化实现、项目代码规范和语义命名为默认要求，保留必要的所有权与安全边界"
-  default_prompt: "用 $cpp-core 完成当前 C++ 修改，优先复用和简化实现，遵循项目规范、准确命名，并保留必要安全边界及验证。"
+  short_description: "在项目标准内用现代 C++ 写法，简化实现、规范命名，正确组织头文件与构建依赖"
+  default_prompt: "用 $cpp-core 完成当前 C++ 修改：在项目标准内使用现代写法，优先复用和简化实现，遵循项目规范、准确命名，正确更新构建依赖，并保留必要安全边界及验证。"
 policy:
   allow_implicit_invocation: true

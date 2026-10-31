@@ -205,7 +205,34 @@ constexpr T AlignUp(T value, T alignment) {
 - 原子变量默认使用顺序一致内存序；使用 `relaxed`/`acquire`/`release` 时，注释写清配对的同步关系。
 - 不用 `volatile` 做线程同步，不用 `sleep` 等待状态，不手写双重检查加锁；一次性初始化用函数内 `static` 或 `std::call_once`。
 
+## 旧标准与受限库范围
+
+老项目常在 README、构建选项或配置宏中写明移植约束，例如关闭 STL 的开关、`-ansi`/`-std=c++98`、`-fno-exceptions`，或要求 `.cpp` 改名为 `.c` 后仍能编译。这些约束优先于本文其他小节；在约束内仍然把资源交给 owner、消除重复、检查每个返回值。
+
+- **C++98/03**：没有 `nullptr`、`auto`、range-for、lambda、`override`、移动语义和 `std::unique_ptr`。owner 写成不可复制的类：析构释放，复制构造与赋值声明为私有且不定义；空指针沿用项目的 `0` 或 `NULL`；内部辅助函数放匿名命名空间或写成 `static`。
+- **关闭 STL**：用项目自己的字符串和动态数组（例如 TinyXML 的 `TIXML_STRING`），不 include `<vector>`、`<string>`、`<memory>`、`<algorithm>`；`<string.h>` 等 C 头文件照常使用。
+- **与 C 共用的源文件**：C 部分保持项目要求的 C 标准，C++ 代码留在项目已有的 C++ 区段（如 `#ifdef __cplusplus` 或项目的编译开关）内。辅助代码的定义与使用放在同一组条件编译下，否则某些配置会出现未使用的 `static` 函数；只供 owner 使用的逻辑写成成员函数可以避免这个问题。
+- **无异常**：不写 `try`/`catch`，不依赖抛出来传播失败，沿用项目的返回码；RAII 仍然适用。
+- **验证**：libc++ 在 `-std=c++98` 下仍提供 `std::unique_ptr` 等后续标准的类型，编译通过不代表符合标准。用 `-pedantic-errors` 检查语言特性，用 GCC 的 libstdc++ 检查库用法，并按项目文档列出的配置宏逐一构建。
+
+```cpp
+// C++98：不可复制的文件 owner。成员命名随项目约定。
+class FileCloser {
+ public:
+  explicit FileCloser(FILE* file) : file_(file) {}
+  ~FileCloser() { if (file_) fclose(file_); }
+  FILE* get() const { return file_; }
+
+ private:
+  FileCloser(const FileCloser&);             // 不定义：禁止复制
+  FileCloser& operator=(const FileCloser&);  // 不定义：禁止赋值
+  FILE* file_;
+};
+```
+
 ## AI 常见旧式写法对照
+
+以下替换以 C++11 及以上、可用标准库为前提；受限项目见上一节。
 
 | 常见写法 | 替换为 |
 | --- | --- |

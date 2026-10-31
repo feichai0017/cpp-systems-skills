@@ -1,6 +1,6 @@
 # 原始代码案例
 
-第一、二轮的案例代码是为本合集编写的小项目，第三轮从固定版本的开源仓库导入。前两轮各案例的 C++ 标准写在其 `AGENTS.md` 中：`standard-gate` 为 C++14，`owner`、`reuse`、`borrow`、`naming` 为 C++17，其余为 C++20。
+第一、二轮的案例代码是为本合集编写的小项目，第三轮起从固定版本的开源仓库导入。前两轮各案例的 C++ 标准写在其 `AGENTS.md` 中：`standard-gate` 为 C++14，`owner`、`reuse`、`borrow`、`naming` 为 C++17，其余为 C++20。
 
 执行者只接收一个案例目录、指定技能目录和该案例的 `TASK.md` 内容。将这些文件复制到独立临时目录后开始新会话，不附带本文件、[评审判据](../fixture-rubric.md)、`../hidden-checks/` 或之前的诊断。不要通过共享父目录暴露判据。
 
@@ -57,6 +57,18 @@
 | `tinyxml2-strict-numbers` | TinyXML-2 2.2.0 | [修复](tinyxml2-strict-numbers/TASK.md)把 `"12abc"` 读成 12 的数值转换 | 五组转换、三个入口共 136 个用例；已有测试中 `"2.0"` 合同的改变须在说明中写明；C++98、无 STL、无异常；`xmltest.cpp`（CRLF）只新增不改动 |
 | `inih-parse-string` | inih r30 | [新增](inih-parse-string/TASK.md) `ini_parse_string` 与 `INIReader` 的字符串构造 | 6 种编译选项下与 `ini_parse_file` 逐个回调比较；C89 写法；解析循环不复制；按文件名构造不被新重载截获 |
 
+## 第五轮：合同范围、过度工程与命名
+
+第四轮中技能组有 4/6 次只修了题目点名的 `ToInt`/`ToUnsigned`，两组在 high 强度下都没有说明改变了已有测试的合同。`cpp-core` 据此补充了按行为合同确定范围、报告已有合同的变化，以及不重复检查、单一路径不做多层抽象、不用防御式前缀和重复上下文命名的规则。复测加入第三轮时的技能版本（`--skills-rev 9bce81b`），区分新规则和技能原有倾向的影响。
+
+| 案例 | 来源 | 任务 | 隐藏检查 |
+| --- | --- | --- | --- |
+| `stb-write-errors` | stb `003501f`（stb_image_write v1.16） | [修复](stb-write-errors/TASK.md)写文件失败时 `stbi_write_png` 仍返回 1 | 五个文件入口 × 五种写入故障；`fclose` 失败；回调类型和公开声明不变；与原始输出逐字节比较；C/C++98 与配置宏的诊断 |
+| `minini-number-defaults` | minIni `1bb6557` | [修复](minini-number-defaults/TASK.md)`ini_getl` 把 `"abc"` 读成 0 | `ini_getl`、`ini_getf`、`minIni::geti` 的整值与范围；`ini_getbool` 等接口输出不变；C89、无动态内存、TCHAR 映射、CRLF |
+
+- 两个案例都有题目点名之外、承担同一合同的入口，也有看起来相似但合同不同、必须保持不变的接口（stb 的回调变体、minIni 的 `ini_getbool`）。
+- `tinyxml2-strict-numbers` 再用当前技能和 `9bce81b` 各运行一组，与第四轮已有结果比较；这组用过的案例只作对照，不计为独立复测。
+
 ## 运行与记录
 
 `scripts/run_codex_eval.py` 为单个案例准备隔离工作区并运行 Codex：
@@ -66,7 +78,7 @@ python3 scripts/run_codex_eval.py durable-config --arm skills --trial 1 \
   --out /tmp/cpp-skill-evals --effort high --cxx /opt/homebrew/opt/llvm/bin/clang++ --grade
 ```
 
-- `--arm skills` 把技能（默认全部）复制到工作区的 `.agents/skills`，并写入 `.git/info/exclude`，不进入评审的 diff；`--arm control` 不安装技能。
+- `--arm skills` 把技能（默认全部）复制到工作区的 `.agents/skills`，并写入 `.git/info/exclude`，不进入评审的 diff；`--arm control` 不安装技能。`--skills-rev <提交>` 安装该提交中的技能，运行目录名记为 `skills@<提交>`。
 - 输出目录必须在仓库外。每次运行保存事件日志、最终回复、diff、`run.json`（Codex 版本、技能提交、读取过的技能文件等）和可选的 `grade.txt`。
 - 需要判断技能带来的提升时，同一模型、同一设置下有无技能各运行多次，按次数报告每项判据的满足情况；少量运行只说明观察到的差异，不写成统计结论。
 

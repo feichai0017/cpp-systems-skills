@@ -142,8 +142,30 @@
 - 测试：在 `tests/unittest.c`（同时扩展基线）或 C++ 示例中覆盖 `ini_parse_string`；扩展基线时保留文件原有的换行风格。
 - 范围：不修改 `rstrip`、`lskip` 等无关函数，不改写 `ini.h` 中已有的声明。
 
+## stb-write-errors
+
+隐藏检查：`hidden-checks/stb-write-errors/check.sh`。用 `funopen`/`fopencookie` 构造的 `FILE*` 对 png、bmp、tga（RLE 与非 RLE）、hdr、jpg 的文件入口分别注入 `fopen` 失败、全部写入失败、写到一半失败、只有最后一个字节失败和 `fclose` 失败，在 ASan/UBSan/LSan 下运行；成功时的输出与原始实现逐字节比较。
+
+- 行为：头文件说明“Each function returns 0 on failure”覆盖全部文件入口，题目点名的 `stbi_write_png` 只是例子。bmp、tga、hdr、jpg 经 `stbi__start_write_file`/`stbi__end_write_file` 共用写文件路径，同样要报告失败；缓冲区里的最后一段数据在 `fclose` 时才写出，所以必须检查 `fclose` 的返回值，只看 `fwrite` 或 `ferror` 不够。失败时 `FILE` 恰好关闭一次，PNG 缓冲区不泄漏。
+- 不能扩大：`stbi_write_func` 回调没有返回值，`*_to_func` 无法得知写入失败，保持原样；修改回调类型或已有公开声明会破坏所有调用方，记为不满足。新增公开接口不是任务要求。
+- 项目约束：同一份代码按 C99 `-pedantic`、`STBI_WRITE_NO_STDIO`、`STB_IMAGE_WRITE_STATIC`、clang 与 GCC 的 C++98 编译都不能新增诊断；声明放在块首，与文件其余部分一致。
+- 范围与写法：只改 stdio 写文件的辅助函数、写上下文和五个文件入口，不改编码器。参考修复约 15 行：`stbi__end_write_file` 返回 `!ferror(f)` 与 `fclose` 的结果，四个入口据此返回 0，PNG 检查 `fwrite` 和 `fclose`。
+- 报告：说明合同覆盖了哪些入口。
+
+## minini-number-defaults
+
+隐藏检查：`hidden-checks/minini-number-defaults/check.sh`。`ini_getl` 与 `ini_getf` 分别在独立进程中检查合法值、非法值和越界值（ASan/UBSan/LSan），C++ 的 `minIni::geti` 检查 int 范围；`ini_getbool`、`ini_gets`、枚举、浏览和写入接口的输出与原始实现逐字节比较。
+
+- 行为：`DefValue` 的合同对 `ini_getl`、`ini_getf` 和 C++ 包装一致适用，题目点名的 `ini_getl` 只是例子。整个值（允许前后空白，包括引号内的空白）必须是目标类型的数：`ini_getl` 拒绝 `"12abc"`、`"1.5"`、`"0x"`、`"0x1G"`、溢出；`"010"` 读成 10；`" 0x1F "` 读成 31。`ini_getf`（默认 `INI_REAL` 为 float）拒绝 `"1.5x"`、`"1,5"`、超出 float 范围的值。`minIni::geti` 在超出 int 范围时返回 `DefValue`，不截断；`wxMinIni.h` 的同名函数一并处理为加分项。`"+5"`、`"-0x10"`、`"nan"`、`".5"` 等只记录结果。
+- 不能扩大：`ini_getbool` 的文档规定只看首字符（`"1abc"` 为真），保持原样；`ini_gets` 和写入接口不变。
+- 已有合同：手册（`doc/minIni.pdf`）写的是 `DefValue` 只在 key 不存在时返回，修复改变了文档描述，说明中应指出（软判据）。
+- 项目约束：README 说明不使用动态内存，`minIni.c` 保持 C89，在 `INI_READONLY`、`INI_ANSIONLY`、`NDEBUG`/`INI_NOBROWSE`/`PORTABLE_STRNICMP` 和没有 `INI_REAL` 的 glue 下都不新增诊断，仍能按 C++ 编译；新代码使用 `_tcstol`、`_tcstod`、`_totupper` 等 TCHAR 映射，不直接调用只接受 `char` 的函数；`ini_getf` 仍经 glue 的 `ini_atof` 转换为加分项。`minIni.h` 的 C++ 类保持 C++98。源文件使用 CRLF，不转换换行。
+- 测试：在 `dev/test.c` 或 `dev/test2.cc` 中覆盖数值读取，测试结束后 `test.ini` 恢复原样。
+
 ## 记录方法
 
 在仓库外记录每次执行的模型/宿主、skill 与输入快照、原始提示、修改及命令结果，不提交运行报告或产物。分别标注行为、复用、保持不变量、范围控制和证据是否满足。
 
 同一模型的一次成功只能算一次 smoke。规则修改后使用新的同类输入复测，不把已泄露判据的重复运行计作独立评估。
+
+第五轮起，`hidden-checks/common/style.py` 对非测试源码统计新增行数、新增函数和新增判空检查，并列出过长的新名称；新名称带 `ensure`、`try`、`maybe`、`safe`、`checked`、`validate`、`do`、`handle`、`process` 前缀记为软判据不满足。行数和函数数只用于比较各组，不单独判定好坏。

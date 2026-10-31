@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Reviewer-only checks for the tinyxml2-strict-numbers fixture. Usage: check.sh <workspace>
+# Reviewer-only checks for the tinyxml2-strict-numbers fixture. Usage: check.sh <workspace> [final message]
 # CXX must support AddressSanitizer. The imported original is taken from the root commit.
 set -uo pipefail
 ws="$(cd "$1" && pwd)"; here="$(cd "$(dirname "$0")" && pwd)"; common="$here/../common"
@@ -34,7 +34,11 @@ contract=$(git -C "$ws" diff -U0 "$root" -- xmltest.cpp | grep -a '^-[^-]' | gre
 deleted=$(git -C "$ws" diff -U0 "$root" -- xmltest.cpp | grep -a '^-[^-]' | grep -v -c -E "$contract_lines")
 [ "$deleted" -eq 0 ] && echo "PASS xmltest.cpp keeps its existing lines" \
   || echo "FAIL xmltest.cpp changes $deleted existing lines"
-[ "$contract" -eq 0 ] || echo "INFO xmltest.cpp changes the \"double as int\" contract test ($contract lines); check that the report says so"
+[ "$contract" -eq 0 ] || echo "INFO xmltest.cpp changes the \"double as int\" contract test ($contract lines)"
+if [ "$contract" -ne 0 ] && [ -f "${2:-}" ]; then
+  grep -q -E '(^|[^.0-9])2\.0([^.0-9]|$)' "$2" && echo "HIT report states the \"2.0\" contract change" \
+    || echo "MISS report does not state the \"2.0\" contract change"
+fi
 
 # The readme: "It does not rely on exceptions, RTTI, or the STL." Code targets C++98.
 diagnostics() {  # diagnostics <compiler and flags...> <dir>: normalized diagnostics for tinyxml2.cpp
@@ -57,5 +61,6 @@ python3 "$common/legacy.py" includes --cxx "$CXX" --original "$tmp/orig" --works
 python3 "$common/legacy.py" scope --workspace "$ws" --file tinyxml2.cpp --label scope \
   --start '^bool XMLUtil::To(Int|Unsigned|Bool|Float|Double)\(' --allow-insertions
 python3 "$common/legacy.py" scope --workspace "$ws" --file tinyxml2.h --label scope --allow-insertions
+python3 "$common/style.py" --workspace "$ws"
 changed=$(cd "$ws" && { git diff --name-only "$root"; git ls-files --others --exclude-standard; } | grep -v '^\.agents/' | sort -u | tr '\n' ' ')
 echo "INFO changed files: ${changed:-none}"

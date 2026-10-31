@@ -4,7 +4,8 @@
 The workspace and all run artifacts go to --out, which must be outside this
 repository. The executor only receives the fixture files, the TASK.md text as
 its prompt and, for the skills arm, a copy of the selected skills under
-.agents/skills. Rubrics and hidden checks are never copied into the workspace.
+.agents/skills, taken from the working tree or from --skills-rev. Rubrics and
+hidden checks are never copied into the workspace.
 """
 
 from __future__ import annotations
@@ -28,7 +29,14 @@ def run(cmd: list[str], cwd: Path, **kwargs) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, cwd=cwd, check=True, text=True, capture_output=True, **kwargs)
 
 
-def prepare_workspace(fixture: str, arm: str, skills: list[str], workspace: Path) -> None:
+def available_skills(rev: str | None) -> list[str]:
+    if rev is None:
+        return sorted(p.name for p in SKILLS.iterdir() if (p / "SKILL.md").exists())
+    files = run(["git", "ls-tree", "-r", "--name-only", rev, "skills"], cwd=REPO).stdout.splitlines()
+    return sorted(Path(f).parent.name for f in files if len(Path(f).parts) == 3 and Path(f).name == "SKILL.md")
+
+
+def prepare_workspace(fixture: str, arm: str, skills: list[str], rev: str | None, workspace: Path) -> None:
     source = FIXTURES / fixture
     shutil.copytree(source, workspace)
     git_identity = ["-c", "user.name=eval", "-c", "user.email=eval@example.invalid"]
@@ -47,8 +55,13 @@ def prepare_workspace(fixture: str, arm: str, skills: list[str], workspace: Path
     if arm == "skills":
         target = workspace / ".agents" / "skills"
         target.mkdir(parents=True)
-        for name in skills:
-            shutil.copytree(SKILLS / name, target / name)
+        if rev is None:
+            for name in skills:
+                shutil.copytree(SKILLS / name, target / name)
+        else:
+            archive = subprocess.run(["git", "archive", rev, *(f"skills/{name}" for name in skills)],
+                                     cwd=REPO, check=True, capture_output=True).stdout
+            subprocess.run(["tar", "-x", "-C", str(target.parent)], input=archive, check=True)
 
 
 def collect_diff(workspace: Path) -> bytes:
@@ -64,6 +77,7 @@ def main() -> int:
     parser.add_argument("--out", type=Path, required=True, help="run directory parent, outside the repository")
     parser.add_argument("--trial", type=int, default=1)
     parser.add_argument("--skills", default="all", help="comma-separated skill names, or 'all'")
+    parser.add_argument("--skills-rev", help="install the skills as of this commit instead of the working tree")
     parser.add_argument("--effort", help="model_reasoning_effort override, for example high")
     parser.add_argument("--model", help="model override")
     parser.add_argument("--cxx", help="value of CXX in the executor's environment")
@@ -76,18 +90,28 @@ def main() -> int:
     out = args.out.resolve()
     if out == REPO or REPO in out.parents:
         parser.error("--out must be outside the repository; run artifacts are not committed")
-    skills = sorted(p.name for p in SKILLS.iterdir() if (p / "SKILL.md").exists()) if args.skills == "all" \
-        else [name.strip() for name in args.skills.split(",") if name.strip()]
+    if args.skills_rev and args.arm != "skills":
+        parser.error("--skills-rev applies to the skills arm")
+    rev = None
+    if args.skills_rev:
+        resolved = subprocess.run(["git", "rev-parse", "--verify", "-q", f"{args.skills_rev}^{{commit}}"],
+                                  cwd=REPO, text=True, capture_output=True)
+        if resolved.returncode != 0:
+            parser.error(f"unknown commit: {args.skills_rev}")
+        rev = resolved.stdout.strip()
+    available = available_skills(rev)
+    skills = available if args.skills == "all" else [name.strip() for name in args.skills.split(",") if name.strip()]
     for name in skills:
-        if not (SKILLS / name / "SKILL.md").exists():
+        if name not in available:
             parser.error(f"unknown skill: {name}")
 
-    run_dir = out / f"{args.fixture}-{args.arm}-{args.trial}"
+    arm = f"{args.arm}@{args.skills_rev}" if rev else args.arm
+    run_dir = out / f"{args.fixture}-{arm}-{args.trial}"
     if run_dir.exists():
         parser.error(f"{run_dir} already exists; choose another --trial or remove it")
     workspace = run_dir / "workspace"
     run_dir.mkdir(parents=True)
-    prepare_workspace(args.fixture, args.arm, skills if args.arm == "skills" else [], workspace)
+    prepare_workspace(args.fixture, args.arm, skills if args.arm == "skills" else [], rev, workspace)
     if args.dry_run:
         print(workspace)
         return 0
@@ -113,19 +137,19 @@ def main() -> int:
     events_text = (run_dir / "events.jsonl").read_text()
     codex_version = subprocess.run(["codex", "--version"], text=True, capture_output=True).stdout.strip()
     metadata = {
-        "fixture": args.fixture, "arm": args.arm, "trial": args.trial, "skills": skills if args.arm == "skills" else [],
+        "fixture": args.fixture, "arm": arm, "trial": args.trial, "skills": skills if args.arm == "skills" else [],
         "exit_code": exit_code, "seconds": seconds, "codex": codex_version, "effort": args.effort,
         "model": args.model, "cxx": args.cxx,
-        "skills_commit": run(["git", "rev-parse", "HEAD"], cwd=REPO).stdout.strip(),
+        "skills_commit": rev or run(["git", "rev-parse", "HEAD"], cwd=REPO).stdout.strip(),
+        "skills_modified": rev is None and bool(run(["git", "status", "--porcelain", "--", "skills"], cwd=REPO).stdout),
         "skill_files_read": sorted({name for name in skills if f".agents/skills/{name}/SKILL.md" in events_text}),
     }
     (run_dir / "run.json").write_text(json.dumps(metadata, indent=2) + "\n")
 
     check = HIDDEN / args.fixture / "check.sh"
     if args.grade and check.exists():
-        check_args = ["bash", str(check), str(workspace)]
-        if args.fixture == "abi-review":
-            check_args.append(str(run_dir / "last_message.txt"))
+        # Checks may also grade the final message, for example whether it names what the fix covers.
+        check_args = ["bash", str(check), str(workspace), str(run_dir / "last_message.txt")]
         result = subprocess.run(check_args, text=True, errors="replace", capture_output=True, env=env)
         (run_dir / "grade.txt").write_text(result.stdout + result.stderr)
 

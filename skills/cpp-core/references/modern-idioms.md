@@ -242,6 +242,11 @@ class FileCloser {
 | 只有一个实现的接口类 + `Impl` | 具体类；需要替身或多实现时再引入接口 |
 | 每个字段都有 getter/setter | 字段独立的数据用 `struct`；有不变量的类只暴露有语义的操作 |
 | `Manager`/`Helper`/`Util` 类收集无关函数 | 按职责命名的自由函数或类型 |
+| 单一路径也写接口、工厂、多个后端或配置开关 | 直接写具体实现；出现第二个实现或替换需求时再抽象 |
+| 每个函数开头判空，重复检查调用方已保证的条件 | 在建立前提的边界检查一次，内部不变量用项目断言 |
+| 先手写语法校验器，再调用 `strtol`/`strtod` 解析一遍 | 只解析一次，用结束位置和错误码判断是否合法 |
+| `EnsureValid()`、`TryParse()`、`SafeRead()`、`HandleX()` | 按行为命名：`Parse()`、`Read()`，判断用 `IsValid()` |
+| 文件内部函数重复库名或类名前缀，如 `TiXmlGetFileSize` | 由作用域提供上下文：`GetFileSize` |
 | `const std::string&` 参数进来再拷贝保存 | 按值接收后 `std::move` |
 | 输出参数 `bool F(T* out)` | 返回 `Result<T>`/`std::optional<T>` |
 | `atoi`/`stoi`/`sprintf` | `std::from_chars`、`std::format`/`fmt` |

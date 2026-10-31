@@ -24,7 +24,7 @@
 ## owner
 
 - 行为：成功与非法头部两条路径都释放区域，`live_regions` 检查保留且通过；区域打开失败时不调用 `CloseRegion`。
-- 所有权：用 RAII 绑定释放。`std::unique_ptr<c_api::Region, 删除器 struct>` 是最直接的解法；手写 owner 时须删除复制、移动操作 `noexcept`、moved-from 状态不会重复释放。只在失败分支补一行 `CloseRegion` 修复了泄漏，但没有建立所有权，不符合技能目标。
+- 所有权：用 RAII 绑定释放。`std::unique_ptr<c_api::Region, 删除器 struct>` 是最直接的解法；函数指针删除器（`decltype(&c_api::CloseRegion)`）也能修复泄漏，但不符合技能对删除器 struct 的要求，记为部分满足；手写 owner 时须删除复制、移动操作 `noexcept`、moved-from 状态不会重复释放。只在失败分支补一行 `CloseRegion` 修复了泄漏，但没有建立所有权，不符合技能目标。
 - 现代写法：按项目约定改为返回 `std::optional<Header>`，去掉输出参数；不写裸 `new`/`delete`；不使用超出 C++17 的设施（例如 `std::span`）；不修改 `c_region.h`。
 - 范围：不新建通用资源框架，不引入异常。
 

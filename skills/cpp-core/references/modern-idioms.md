@@ -75,7 +75,10 @@ struct FileCloser {
 using UniqueFile = std::unique_ptr<std::FILE, FileCloser>;
 ```
 
-  不要写 `decltype(&std::fclose)`：C++20 起取标准库函数地址不再是有保证的行为，删除器 struct 也不占额外空间。
+  删除器总是写成 struct，包括包装项目自己或第三方的释放函数时：
+  - 空的删除器 struct 不占空间，`unique_ptr` 与裸指针一样大；函数指针删除器（`decltype(&CloseRegion)`）要额外存一个指针，在 64 位平台上使 `unique_ptr` 从 8 字节变成 16 字节（libstdc++ 与 libc++ 实测相同）。
+  - struct 的调用可以被内联；函数指针删除器在每次释放时多一次间接调用，并且可能被构造成空指针。
+  - 对标准库函数还有额外原因：C++20 起取标准库函数的地址不是有保证的行为，`decltype(&std::fclose)` 不可移植。
 
 - 确需自定义 owner 时，同时决定五个特殊成员，移动操作 `noexcept`，moved-from 状态有定义：
 

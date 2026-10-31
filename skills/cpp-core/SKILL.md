@@ -19,7 +19,7 @@ description: "C++ 编写、修改和重构代码的默认技能（C++, cpp, .cc/
 
 在项目已确定的标准内用足它允许的设施：不升级标准，也不写低于该标准的旧式代码。项目已有等价类型（`Status`、`Result`、span、日志与断言宏）时用项目类型。新项目没有约束时以 C++20 为基线。具体写法、按标准的设施表和对照示例见 [现代 C++ 写法](references/modern-idioms.md)。
 
-- **所有权**：不写裸 `new`/`delete`/`malloc`。独占用 `std::make_unique`，确需共享寿命才用 `std::make_shared`。包装 C 句柄用 `std::unique_ptr` 加删除器 struct。
+- **所有权**：不写裸 `new`/`delete`/`malloc`。独占用 `std::make_unique`，确需共享寿命才用 `std::make_shared`。包装 C 句柄用 `std::unique_ptr` 加删除器 struct，不用函数指针删除器（它让 `unique_ptr` 变大一倍并多一次间接调用）。
 - **特殊成员**：优先 Rule of Zero；自定义 owner 时同时决定复制、移动与析构，删除不该有的复制，移动操作 `noexcept`。单参数构造函数 `explicit`；覆盖虚函数写 `override`/`final`。
 - **参数与返回**：只读字符串用 `std::string_view`，只读连续序列用 `std::span`（C++20）或项目的等价类型；要保存的参数按值接收再 `std::move`；结果通过返回值传递，不用输出参数。返回 `Status`/`Result` 的函数标 `[[nodiscard]]`。
 - **错误**：可失败操作返回项目的 `Status`/`Result`，C++23 可用 `std::expected`；`std::optional` 只表示合法缺席。文本转数字用 `std::from_chars`，不用 `atoi`/`stoi`。

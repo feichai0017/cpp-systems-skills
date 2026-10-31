@@ -11,7 +11,7 @@ mkdir "$tmp/orig" && git -C "$ws" archive "$root" | tar -x -C "$tmp/orig"
 if $CXX -g -O1 -fsanitize=address,undefined -fno-sanitize-recover=all -w -I"$ws" "$ws/tinyxml2.cpp" \
     "$here/hidden_test.cc" -o "$tmp/probe" 2>"$tmp/probe.log"; then
   out=$(ASAN_OPTIONS=detect_leaks=1 timeout 60 "$tmp/probe" 2>&1); code=$?
-  echo "$out" | grep -E "^(PASS|FAIL) "
+  echo "$out" | grep -E "^(PASS|FAIL|INFO) "
   echo "$out" | grep -q -E "AddressSanitizer|LeakSanitizer|runtime error" \
     && echo "FAIL probe: $(echo "$out" | grep -o -m1 'AddressSanitizer: [a-z-]*\|LeakSanitizer\|runtime error: [^:]*')"
   [ "$code" -eq 0 ] || [ "$code" -eq 1 ] || echo "FAIL probe exited $code"
@@ -28,9 +28,13 @@ if (cd "$tmp/build" && $CXX -o xmltest xmltest.cpp tinyxml2.cpp >"$tmp/build.log
 else
   echo "FAIL xmltest build: $(grep -m1 error "$tmp/build.log")"
 fi
-deleted=$(git -C "$ws" diff -U0 "$root" -- xmltest.cpp | grep -c '^-[^-]')
+# Only the "2.0" contract test (its assertions and the iVal declaration it reads) may change.
+contract_lines='double as int|int iVal, result;'
+contract=$(git -C "$ws" diff -U0 "$root" -- xmltest.cpp | grep -a '^-[^-]' | grep -c -E "$contract_lines")
+deleted=$(git -C "$ws" diff -U0 "$root" -- xmltest.cpp | grep -a '^-[^-]' | grep -v -c -E "$contract_lines")
 [ "$deleted" -eq 0 ] && echo "PASS xmltest.cpp keeps its existing lines" \
   || echo "FAIL xmltest.cpp changes $deleted existing lines"
+[ "$contract" -eq 0 ] || echo "INFO xmltest.cpp changes the \"double as int\" contract test ($contract lines); check that the report says so"
 
 # The readme: "It does not rely on exceptions, RTTI, or the STL." Code targets C++98.
 diagnostics() {  # diagnostics <compiler and flags...> <dir>: normalized diagnostics for tinyxml2.cpp

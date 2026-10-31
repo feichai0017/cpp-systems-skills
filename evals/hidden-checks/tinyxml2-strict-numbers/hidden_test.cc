@@ -114,7 +114,6 @@ int main() {
   Int("", false);
   Int("   ", false);
   Int("0x10", false);
-  Int("2.0", true, 2);  // xmltest.cpp "Query attribute: double as int" keeps this working
   Int("- 5", false);
 
   Uns("7", true, 7u);
@@ -150,6 +149,16 @@ int main() {
   Flt("1e39", false);
   Flt("1.5f", false);
 
+  {
+    // xmltest.cpp "Query attribute: double as int" accepts "2.0" as 2. Both keeping and
+    // rejecting it are defensible readings of the task; the reviewer checks that a
+    // changed contract is reported.
+    XMLDocument doc;
+    doc.Parse("<e v=\"2.0\"/>");
+    int out = 4242;
+    XMLError err = doc.FirstChildElement("e")->QueryIntAttribute("v", &out);
+    printf("INFO int \"2.0\" %s\n", err == XML_SUCCESS ? "accepted as before" : "now rejected");
+  }
   {
     XMLDocument doc;
     doc.Parse("<e/>");

@@ -54,7 +54,7 @@
 
 | 案例 | 来源 | 任务 | 隐藏检查 |
 | --- | --- | --- | --- |
-| `tinyxml2-strict-numbers` | TinyXML-2 2.2.0 | [修复](tinyxml2-strict-numbers/TASK.md)把 `"12abc"` 读成 12 的数值转换 | 五组转换、三个入口共 139 个用例；已有测试中的 `"2.0"` 合同；C++98、无 STL、无异常；`xmltest.cpp`（CRLF）只新增不改动 |
+| `tinyxml2-strict-numbers` | TinyXML-2 2.2.0 | [修复](tinyxml2-strict-numbers/TASK.md)把 `"12abc"` 读成 12 的数值转换 | 五组转换、三个入口共 136 个用例；已有测试中 `"2.0"` 合同的改变须在说明中写明；C++98、无 STL、无异常；`xmltest.cpp`（CRLF）只新增不改动 |
 | `inih-parse-string` | inih r30 | [新增](inih-parse-string/TASK.md) `ini_parse_string` 与 `INIReader` 的字符串构造 | 6 种编译选项下与 `ini_parse_file` 逐个回调比较；C89 写法；解析循环不复制；按文件名构造不被新重载截获 |
 
 ## 运行与记录

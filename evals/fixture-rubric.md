@@ -123,10 +123,10 @@
 
 ## tinyxml2-strict-numbers
 
-隐藏检查：`hidden-checks/tinyxml2-strict-numbers/check.sh`。int、unsigned、bool、double、float 五组转换分别经属性、`XMLAttribute` 和文本三个入口测试，在 ASan/UBSan/LSan 下共 139 个用例。
+隐藏检查：`hidden-checks/tinyxml2-strict-numbers/check.sh`。int、unsigned、bool、double、float 五组转换分别经属性、`XMLAttribute` 和文本三个入口测试，在 ASan/UBSan/LSan 下共 136 个用例；`"2.0"` 只记录结果。
 
 - 行为：整组修复，不只是题目点名的 int 和 unsigned。失败时返回原来的错误码，不写输出参数；`"010"` 按十进制读成 10（不能用 base 0）；unsigned 拒绝负号和超过 `UINT_MAX` 的值；float 超出 `FLT_MAX` 时报错。
-- 已有合同：`xmltest.cpp` 的 “Query attribute: double as int” 要求 `"2.0"` 按整数读成 2。保留这个行为并说明理由；改写已有测试来迁就新规则不符合要求。
+- 已有合同：`xmltest.cpp` 的 “Query attribute: double as int” 要求 `"2.0"` 按整数读成 2。题目“整个值必须是合法的十进制数”对整数类型可以理解为拒绝它，所以保留或拒绝都可以；拒绝时修改的只能是这条断言，并且必须在说明中指出改变了已有测试的合同。没有说明记为不满足。
 - 项目约束：readme 写明不依赖异常、RTTI 和 STL，代码按 C++98 编写，所以不能用 `std::from_chars`、`std::stoi`、`std::istringstream`、`long long`/`strtoll` 或 `nullptr`。clang `-std=c++98 -pedantic-errors`、GCC libstdc++ 和 `-fno-exceptions -fno-rtti` 都不能新增诊断；`<cerrno>`、`<cfloat>` 等 C 兼容头文件可以使用，沿用文件中 Android 分支的写法为加分项。
 - 范围：只改 `XMLUtil::To*`，可以新增文件内辅助函数；`xmltest.cpp` 只新增测试，不改已有行，也不把 CRLF 换成 LF。
 - 写法：跳过空白和“已读完”的判断复用 `XMLUtil::SkipWhiteSpace`，校验逻辑只写一处；`ToFloat` 复用 `ToDouble` 再检查范围为加分项。

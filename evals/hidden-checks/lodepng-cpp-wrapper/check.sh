@@ -77,6 +77,6 @@ echo "INFO changed files: ${changed:-none}"
 
 cpp_section() { awk '/^#ifdef LODEPNG_COMPILE_CPP$/ {on=1} on {print} /^#endif \/\*LODEPNG_COMPILE_CPP\*\// {on=0}' "$1"; }
 frees=$(cpp_section "$ws/lodepng.cpp" | grep -c 'lodepng_free(')
-inserts=$(cpp_section "$ws/lodepng.cpp" | grep -c '\.insert(')
+inserts=$(cpp_section "$ws/lodepng.cpp" | grep -cE 'insert\([a-z_]+\.end\(\)')  # range inserts into an output vector
 [ "$frees" -le 2 ] && [ "$inserts" -le 2 ] && echo "HIT buffer hand-off written once (lodepng_free: $frees, insert: $inserts; original 6 each)" \
   || echo "MISS buffer hand-off still repeated (lodepng_free: $frees, insert: $inserts; original 6 each)"

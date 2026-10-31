@@ -51,9 +51,10 @@ def prepare_workspace(fixture: str, arm: str, skills: list[str], workspace: Path
             shutil.copytree(SKILLS / name, target / name)
 
 
-def collect_diff(workspace: Path) -> str:
+def collect_diff(workspace: Path) -> bytes:
     run(["git", "add", "-A"], cwd=workspace)
-    return run(["git", "diff", "--cached", "HEAD"], cwd=workspace).stdout
+    # Bytes, because imported legacy sources are not always UTF-8.
+    return subprocess.run(["git", "diff", "--cached", "HEAD"], cwd=workspace, check=True, capture_output=True).stdout
 
 
 def main() -> int:
@@ -107,7 +108,7 @@ def main() -> int:
     with (run_dir / "events.jsonl").open("w") as events, (run_dir / "stderr.txt").open("w") as stderr:
         exit_code = subprocess.run(cmd, cwd=workspace, env=env, stdout=events, stderr=stderr).returncode
     seconds = round(time.time() - started)
-    (run_dir / "diff.patch").write_text(collect_diff(workspace))
+    (run_dir / "diff.patch").write_bytes(collect_diff(workspace))
 
     events_text = (run_dir / "events.jsonl").read_text()
     codex_version = subprocess.run(["codex", "--version"], text=True, capture_output=True).stdout.strip()
@@ -125,7 +126,7 @@ def main() -> int:
         check_args = ["bash", str(check), str(workspace)]
         if args.fixture == "abi-review":
             check_args.append(str(run_dir / "last_message.txt"))
-        result = subprocess.run(check_args, text=True, capture_output=True, env=env)
+        result = subprocess.run(check_args, text=True, errors="replace", capture_output=True, env=env)
         (run_dir / "grade.txt").write_text(result.stdout + result.stderr)
 
     print(json.dumps(metadata))

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Reviewer-only checks for the httplib-header-injection fixture. Usage: check.sh <workspace> [final message]
 # CXX must support AddressSanitizer. The imported original is taken from the workspace's root commit.
+# ServerTest listens on test.cc's fixed PORT 1234, so run one check at a time.
 set -uo pipefail
 ws="$(cd "$1" && pwd)"; here="$(cd "$(dirname "$0")" && pwd)"; common="$here/../common"
 message="${2:-}"

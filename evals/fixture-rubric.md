@@ -182,6 +182,18 @@
 - 项目约束：C++11，测试 Makefile 的 `-Wall -Wextra -Wtype-limits -Wconversion -Wshadow` 与 `-fno-exceptions -DCPPHTTPLIB_NO_EXCEPTIONS` 下 clang 和 GCC 都不新增诊断；`ServerTest` 离线套件仍然通过。
 - 测试与报告：`test/test.cc` 覆盖头部注入。在序列化处统一过滤时，说明不必逐个列出入口，所以报告提到哪些入口只记录、不评分。移动已有的 `detail::has_crlf` 使其在 `write_headers` 之前定义属于复用。
 
+## cxxopts-duration-values
+
+隐藏检查：`hidden-checks/cxxopts-duration-values/check.sh`。单位换算、精确性、范围、浮点计数、语法、用法、`std::optional` 七组各自编译成独立程序，在 ASan/UBSan 下运行；前六组用 C++11，`std::optional` 用 C++17，单位、范围和语法三组另用 `CXXOPTS_NO_REGEX` 运行一次。
+
+- 行为：六个单位换算到任意 `std::chrono::duration`，包括 `std::ratio<1, 30>` 这样的非标准周期；整数计数时 `1500ms` 读成 `seconds`、`90s` 读成 `minutes` 要报错，`32s` 读成 `duration<short, milli>` 可以而 `33s` 不行，`-1s` 读成无符号计数报错，换算溢出不能是未定义行为；浮点计数接受 `1.5s`。缺少或未知的单位、`1h30m` 一类组合写法都报错，且异常类型与其他无法解析的值相同（`incorrect_argument_type`）。
+- 范围：题目只给了 `value<milliseconds>()` 和命令行写法，合同是“像 `int`、`double` 一样作为选项值类型”，所以 `default_value`、`implicit_value`、`std::vector<duration>`、位置参数、`KeyValue::as` 和 C++17 的 `std::optional<duration>` 都在范围内。它们都通过未限定的 `parse_value` 调用，而时长类型的关联命名空间不含 `cxxopts::values`，新重载必须声明在 `vector` 与 `optional` 重载之前；放在后面时单值用法正常、容器用法编译不过。
+- 复用：计数用已有的 `parse_value(text, Rep&)` 读取，同时得到整数解析的符号、十六进制、范围检查和浮点解析；用 `std::stoll`、`strtol`、正则或字符串流重写记为软判据不满足，而且 `try`/`catch` 会让 `CXXOPTS_NO_EXCEPTIONS`（`-fno-exceptions`）构建失败。错误通过 `throw_or_mimic<exceptions::incorrect_argument_type>` 报告。
+- 泛型：一个 `duration<Rep, Period>` 的重载比 `!is_integral` 的兜底模板更特化，不需要 `is_duration` 一类的 trait 或新的 SFINAE 门；C++11 下整数与浮点计数的换算可以用项目已有的 `std::true_type`/`std::false_type` 标签分派（同 `checked_negate`）。新增类型 trait 记为软判据不满足；模板、结构体、标签分派、表和 lambda 的数量只记录，用于比较各组。
+- 项目约束：C++11，clang 与 GCC 在 C++11/14/17/20 下按项目的警告选项（`-Wconversion`、`-Weffc++` 等）不新增诊断；标准 typedef 与 `duration<double>` 的实例化不能产生警告，`short`、32 位、无符号、`float` 计数的实例化警告只记为软判据。`options_test` 在 C++11 与 C++17 下通过，原始 `options.cpp` 配新头文件也通过。
+- 已知的上游问题：`integer_parser` 对每个负数都调用 `std::abs(std::numeric_limits<T>::min())`，64 位计数时是未定义行为，所以负数用例使用 32 位计数；修改 `integer_parser` 超出范围，在“头文件只新增代码”一项体现。
+- 测试与文档：`test/options.cpp` 覆盖时长且只新增；README 列出支持的值类型，补充时长为加分项。
+
 ## 记录方法
 
 在仓库外记录每次执行的模型/宿主、skill 与输入快照、原始提示、修改及命令结果，不提交运行报告或产物。分别标注行为、复用、保持不变量、范围控制和证据是否满足。

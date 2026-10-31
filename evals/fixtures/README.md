@@ -81,6 +81,18 @@
 - fmt 中相邻的 `variant` 格式化器本身在 `wchar_t` 下编译不过，照抄它会把问题带进新代码；`ranges.h` 已有正确的写法。
 - httplib 上游 0.12.4 的修复只覆盖 `content_type` 路径，按题目的合同，调用方传入的头部也在范围内。
 
+## 第七轮：没有现成答案的泛型任务与封装层复测
+
+第六轮的 fmt 任务在上游 fmt 10 中有现成实现，三组都接近满分；`cpp-core` 的命名规则还让一次运行改名了 fmt 自己的 `maybe_set_debug_format`。第七轮选用上游从未实现的功能，检验泛型写法和复用；同时用修改后的技能复测第五轮 `minIni::geti` 无人处理的封装层。
+
+| 案例 | 来源 | 任务 | 隐藏检查 |
+| --- | --- | --- | --- |
+| `cxxopts-duration-values` | cxxopts 3.3.1 | [新增](cxxopts-duration-values/TASK.md) `std::chrono::duration` 选项值 | 七组行为在 ASan/UBSan 下分别编译，含无正则实现；任意周期、精确性与溢出；容器与 `optional` 的两阶段查找；C++11–20 与项目警告选项的诊断；无异常构建；复用与 trait |
+| `minini-number-defaults` | minIni `1bb6557` | 第五轮的同一案例 | 同第五轮 |
+
+- cxxopts 的 `checked_negate` 本身带有 `checked` 前缀，用于观察修改后的命名规则是否只约束新名字。
+- `minini-number-defaults` 是封装层规则的来源，复测只说明规则在原案例上是否生效，不计为独立证据；对照沿用第五轮同一 Codex 版本的结果，另加入第六轮的技能版本（`--skills-rev a28f6a3`），区分封装层这句与复用、泛型规则的影响。
+
 ## 运行与记录
 
 `scripts/run_codex_eval.py` 为单个案例准备隔离工作区并运行 Codex：

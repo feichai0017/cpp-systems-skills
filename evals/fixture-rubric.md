@@ -91,6 +91,36 @@
 - 不误报：新增自由函数 `Version()` 是兼容的新增符号。
 - 范围：只报告，不修改代码；区分 ABI 破坏与源码兼容性问题。
 
+## tinyxml-loadfile
+
+隐藏检查：`hidden-checks/tinyxml-loadfile/check.sh`。以工作区根提交（导入的原始代码）为行为基准，在 ASan/UBSan/LSan 下比较 12 个输入，并用 `funopen`/`fopencookie` 构造 seek、tell、读取失败的 `FILE*`。
+
+- 行为：返回值、错误码与文档内容和原始实现一致，包括 CR、CR+LF、孤立 CR 的规范化，调用前流位置不在开头时仍从头读取，空文件报告 `TIXML_ERROR_DOCUMENT_EMPTY`，NULL 文件报告 `TIXML_ERROR_OPENING_FILE`，加载失败前先清空文档。
+- 修复：原实现在 `fseek(SEEK_END)` 失败时把当前位置当作文件长度，只解析前缀并返回成功；重构后返回错误或读出完整文档。`ftell` 失败、回到开头失败、短读和读错误都返回错误。
+- 项目约束：readme 写明关闭 STL 时不包含任何 STL 文件，也不需要异常和 RTTI，代码按 C++98 编写。不引入 `<vector>`、`<memory>`、`<string>`、`<algorithm>` 等头文件，不使用 `std::unique_ptr`、`nullptr`、`auto`、lambda 或异常；clang `-std=c++98 -pedantic-errors`、GCC libstdc++ `-std=c++98`、`-fno-exceptions -fno-rtti` 都要通过，两种 STL 模式的 `xmltest` 全部通过。
+- 写法：缓冲区不再在每条错误路径上手动释放（C++98 写法的不可复制 owner、单一出口或项目已有的 `TiXmlString` 都可以）；取长度和换行规范化可以拆成文件内 `static` 函数；保留说明 XML 规范换行处理的注释要点。
+- 范围：只改 `LoadFile`，可在文件内新增辅助函数；不修改其他函数，不改公开接口；在 `tinyxml.h` 中增加私有成员需要说明理由。
+
+## tinyxml-path-lookup
+
+隐藏检查：`hidden-checks/tinyxml-path-lookup/check.sh`（两种 STL 模式，ASan/UBSan/LSan，替换全局 `operator new` 统计查找时的分配）。
+
+- 行为：每层取第一个同名子元素且不回溯；段名整体匹配（`a` 不匹配 `ab`，`roo` 不匹配 `root`）；NULL、空串、开头、末尾或连续的 `/` 返回 NULL；路径从当前节点的子元素开始，不包含当前节点本身；在文本节点上调用返回 NULL；非 const 版本返回同一元素；含冒号的元素名照常匹配。
+- 约定：沿用 `FirstChildElement` 的写法，即 const 实现加非 const 的 `const_cast` 转发、Doxygen 注释、返回 `0`；在 `TIXML_USE_STL` 下提供 `std::string` 重载为加分项。
+- 项目约束同 `tinyxml-loadfile`。查找时在路径字符串上逐段比较、不分配内存为加分项；切分成 `std::vector<std::string>` 违反关闭 STL 时的约束。
+- 测试：用 `xmltest.cpp` 已有的 `XmlTest` 补充测试，两种模式的通过数都增加。
+- 范围：只新增代码，不修改已有行。
+
+## lodepng-cpp-wrapper
+
+隐藏检查：`hidden-checks/lodepng-cpp-wrapper/check.sh`。以原始实现为基准比较 21 次调用的结果；测试替换 `lodepng_malloc`/`lodepng_realloc`/`lodepng_free` 和全局 `operator new`，在每个入口的每次分配处依次抛出 `std::bad_alloc`，检查 C 缓冲区和文件描述符是否泄漏。
+
+- 行为：输出参数是追加而不是覆盖；`decode` 只在成功时追加，`compress`/`encode` 在有缓冲区时即使出错也追加（原实现如此）；错误码不变。
+- 异常安全：9 个入口在任意一次分配抛出时都不泄漏 `lodepng_malloc` 缓冲区，`load_file` 和经由它的 `decode` 不泄漏打开的文件。
+- 项目约束：README 写明 C++ 部分用 `-ansi`（C++98）编译，`lodepng.cpp` 改名为 `.c` 后可按 C89 编译。不使用 `std::unique_ptr`、lambda、`nullptr` 或移动语义；libc++ 在 C++98 模式下仍提供 `std::unique_ptr`，所以用 GCC libstdc++ 检查。新代码留在 `LODEPNG_COMPILE_CPP` 区段内；`LODEPNG_NO_COMPILE_*` 的各种组合都不能新增警告，例如只在部分配置下使用的 `static` 辅助函数会触发 `-Wunused-function`。
+- 写法：缓冲区交接只写一处（不可复制 owner 的析构函数或成员函数），`lodepng_free` 和 `insert` 不再逐个函数重复；不修改 `lodepng.h` 和 C 部分。
+- 加分：指出 vector 重载 `decode` 中 `(unsigned)in.size()` 的截断等相邻问题，并说明不在本任务中修改；直接修改也可以接受，但要在说明中写出。
+
 ## 记录方法
 
 在仓库外记录每次执行的模型/宿主、skill 与输入快照、原始提示、修改及命令结果，不提交运行报告或产物。分别标注行为、复用、保持不变量、范围控制和证据是否满足。

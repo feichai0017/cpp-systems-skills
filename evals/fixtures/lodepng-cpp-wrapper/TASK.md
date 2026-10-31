@@ -1,0 +1,1 @@
+`lodepng.cpp` 末尾的 C++ 封装（`LODEPNG_COMPILE_CPP` 部分）里，几乎每个函数都重复同一段代码：调用 C 接口拿到 `lodepng_malloc` 分配的缓冲区，插入 `std::vector` 后再手动 `lodepng_free`。我们的服务在内存紧张、抛出 `std::bad_alloc` 时观察到内存泄漏，`load_file` 在这种情况下还会泄漏打开的文件。重构这部分代码，消除重复并修复异常时的泄漏，不改变 `lodepng.h` 中的公开接口和函数行为。

@@ -1,0 +1,1 @@
+给 TinyXML 增加按路径查找元素的功能：在 `TiXmlNode` 上新增 `const TiXmlElement* FirstChildElementByPath(const char* path) const` 及对应的非 const 版本。路径由 `/` 分隔的元素名组成，例如 `"config/server/port"`，从当前节点开始，每一层取第一个名字匹配的子元素。路径为空、为 NULL、含有空的段（如 `"a//b"`、`"/a"`、`"a/"`）或任一层找不到时返回 NULL。在 `xmltest.cpp` 中补充测试。

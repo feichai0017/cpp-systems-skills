@@ -1,6 +1,6 @@
 # 原始代码案例
 
-案例代码为本合集编写的小项目，不依赖真实业务仓库。各案例的 C++ 标准写在其 `AGENTS.md` 中：`standard-gate` 为 C++14，`owner`、`reuse`、`borrow`、`naming` 为 C++17，其余为 C++20。
+第一、二轮的案例代码是为本合集编写的小项目，第三轮从固定版本的开源仓库导入。前两轮各案例的 C++ 标准写在其 `AGENTS.md` 中：`standard-gate` 为 C++14，`owner`、`reuse`、`borrow`、`naming` 为 C++17，其余为 C++20。
 
 执行者只接收一个案例目录、指定技能目录和该案例的 `TASK.md` 内容。将这些文件复制到独立临时目录后开始新会话，不附带本文件、[评审判据](../fixture-rubric.md)、`../hidden-checks/` 或之前的诊断。不要通过共享父目录暴露判据。
 
@@ -33,6 +33,20 @@
 - `abi-review` 的 `setup.sh` 在评测工作区中用 `base/` 与 `head/` 生成 git 历史后删除自身；不要直接在仓库内运行它。
 - 使用 AddressSanitizer 的案例用 `$CXX` 编译。在 macOS 26.6 上观察到 Apple clang 17 生成的任何 ASan 程序都会挂起，而 Homebrew LLVM 正常，这时把 `CXX` 设为可用的编译器并记录在运行元数据中。
 - 每个隐藏检查都在原始案例上失败、在仓库外的参考解答上通过；`coro-lifetime` 另外确认了只在调用处保存 key 的修法能通过可见检查但不能通过隐藏检查。
+
+## 第三轮：真实遗留仓库
+
+前两轮的案例是为技能编写的小项目，强模型不用技能也能完成。第三轮在固定版本的真实仓库上重构或新增功能；这些仓库有自己的年代和可移植性约定（C++98、可关闭 STL、可按 C89 编译、不依赖异常），技能的现代写法要服从项目约定，判断改动范围、保持已有行为都是评审重点。
+
+| 案例 | 来源 | 任务 | 隐藏检查 |
+| --- | --- | --- | --- |
+| `tinyxml-loadfile` | TinyXML 2.6.2 | [重构](tinyxml-loadfile/TASK.md) `TiXmlDocument::LoadFile(FILE*)` | 与原始实现比较 12 个输入；seek/tell/读取失败的 `FILE*`；C++98、关闭 STL、无异常构建 |
+| `tinyxml-path-lookup` | TinyXML 2.6.2 | [新增](tinyxml-path-lookup/TASK.md) `FirstChildElementByPath` | 段名整体匹配与不回溯；项目约定的重载和注释；查找时的分配次数 |
+| `lodepng-cpp-wrapper` | lodepng `e584a84` | [重构](lodepng-cpp-wrapper/TASK.md) C++ 封装的重复与异常安全 | 与原始实现比较 21 次调用；逐次注入 `std::bad_alloc`；各 `LODEPNG_NO_COMPILE_*` 配置的警告；C89 构建 |
+
+- `setup.sh` 按固定 URL 下载源码并校验 SHA-256，导入为工作区的根提交；把 `CPP_EVAL_SOURCES` 设为存放归档的目录可以离线运行。隐藏检查以根提交为行为基准，并把构建和测试产物写入 `.git/info/exclude`。
+- 检查 C++98 下的库用法需要 GCC（libstdc++）；找不到时这一项记为 SKIP，可以用 `GXX` 指定。
+- jsoncpp 0.7.0 的 CMake 依赖已在 CMake 4 中移除的 `FindPythonInterp`，暂未收入。
 
 ## 运行与记录
 

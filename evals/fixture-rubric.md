@@ -121,6 +121,27 @@
 - 写法：缓冲区交接只写一处（不可复制 owner 的析构函数或成员函数），`lodepng_free` 和 `insert` 不再逐个函数重复；不修改 `lodepng.h` 和 C 部分。
 - 加分：指出 vector 重载 `decode` 中 `(unsigned)in.size()` 的截断等相邻问题，并说明不在本任务中修改；直接修改也可以接受，但要在说明中写出。
 
+## tinyxml2-strict-numbers
+
+隐藏检查：`hidden-checks/tinyxml2-strict-numbers/check.sh`。int、unsigned、bool、double、float 五组转换分别经属性、`XMLAttribute` 和文本三个入口测试，在 ASan/UBSan/LSan 下共 139 个用例。
+
+- 行为：整组修复，不只是题目点名的 int 和 unsigned。失败时返回原来的错误码，不写输出参数；`"010"` 按十进制读成 10（不能用 base 0）；unsigned 拒绝负号和超过 `UINT_MAX` 的值；float 超出 `FLT_MAX` 时报错。
+- 已有合同：`xmltest.cpp` 的 “Query attribute: double as int” 要求 `"2.0"` 按整数读成 2。保留这个行为并说明理由；改写已有测试来迁就新规则不符合要求。
+- 项目约束：readme 写明不依赖异常、RTTI 和 STL，代码按 C++98 编写，所以不能用 `std::from_chars`、`std::stoi`、`std::istringstream`、`long long`/`strtoll` 或 `nullptr`。clang `-std=c++98 -pedantic-errors`、GCC libstdc++ 和 `-fno-exceptions -fno-rtti` 都不能新增诊断；`<cerrno>`、`<cfloat>` 等 C 兼容头文件可以使用，沿用文件中 Android 分支的写法为加分项。
+- 范围：只改 `XMLUtil::To*`，可以新增文件内辅助函数；`xmltest.cpp` 只新增测试，不改已有行，也不把 CRLF 换成 LF。
+- 写法：跳过空白和“已读完”的判断复用 `XMLUtil::SkipWhiteSpace`，校验逻辑只写一处；`ToFloat` 复用 `ToDouble` 再检查范围为加分项。
+
+## inih-parse-string
+
+隐藏检查：`hidden-checks/inih-parse-string/check.sh`。在 6 种编译选项下比较 37 个输入的回调序列和返回值，输入包括仓库自带的测试文件、空串、无结尾换行、CRLF、单独的 CR、BOM、续行、注释、用户错误和接近 `INI_MAX_LINE` 的长行；还用原始单元测试对照原基线，并检查三种按文件名构造 `INIReader` 的写法。
+
+- 行为：`ini_parse_string` 按 `fgets` 的语义切行：每次最多读 `INI_MAX_LINE - 1` 字节并保留换行，长行剩下的部分作为下一行；先按 `'\n'` 切分再截断与文件解析结果不同。不修改输入字符串；`INI_USE_STACK=0` 时不泄漏。
+- 复用：解析循环只保留一份，抽成以读取函数为参数的内部函数或等价结构；复制整个循环不符合要求。借助 `tmpfile`、`fmemopen` 等方式经由 `FILE*` 解析，在没有文件系统的嵌入式环境中不可用，记为不满足。
+- 项目约束：`ini.c` 是 C 代码，保持文件已有的 C89 写法（`/* */` 注释、声明在块首）；`ini.h` 的 `extern "C"` 覆盖新声明，新声明带有与相邻函数一致的注释。
+- C++ 封装：新的构造方式不能截获已有的按文件名构造。只加 `INIReader(const char*)` 会让 `INIReader("file.ini")` 把文件名当作 INI 内容解析；`INIReader(const char* buffer, size_t size)`、带标记类型的构造函数或静态工厂都可以。保持 INIReader 已有的 C++98 写法。
+- 测试：在 `tests/unittest.c`（同时扩展基线）或 C++ 示例中覆盖 `ini_parse_string`；扩展基线时保留文件原有的换行风格。
+- 范围：不修改 `rstrip`、`lskip` 等无关函数，不改写 `ini.h` 中已有的声明。
+
 ## 记录方法
 
 在仓库外记录每次执行的模型/宿主、skill 与输入快照、原始提示、修改及命令结果，不提交运行报告或产物。分别标注行为、复用、保持不变量、范围控制和证据是否满足。

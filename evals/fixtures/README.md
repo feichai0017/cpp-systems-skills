@@ -48,6 +48,15 @@
 - 检查 C++98 下的库用法需要 GCC（libstdc++）；找不到时这一项记为 SKIP，可以用 `GXX` 指定。
 - jsoncpp 0.7.0 的 CMake 依赖已在 CMake 4 中移除的 `FindPythonInterp`，暂未收入。
 
+## 第四轮：技能修改后的复测
+
+第三轮中技能组有一次在关闭 STL 的 TinyXML 中引入 `std::vector`，两组都没有补齐同类接口的重载，对照组有两次改写了任务之外的已有行。`cpp-core` 据此补充了库范围与移植约束、同类接口的整组写法和不改动无关行的规则。按记录方法，复测使用新的同类仓库，不重复已经暴露判据的案例。
+
+| 案例 | 来源 | 任务 | 隐藏检查 |
+| --- | --- | --- | --- |
+| `tinyxml2-strict-numbers` | TinyXML-2 2.2.0 | [修复](tinyxml2-strict-numbers/TASK.md)把 `"12abc"` 读成 12 的数值转换 | 五组转换、三个入口共 139 个用例；已有测试中的 `"2.0"` 合同；C++98、无 STL、无异常；`xmltest.cpp`（CRLF）只新增不改动 |
+| `inih-parse-string` | inih r30 | [新增](inih-parse-string/TASK.md) `ini_parse_string` 与 `INIReader` 的字符串构造 | 6 种编译选项下与 `ini_parse_file` 逐个回调比较；C89 写法；解析循环不复制；按文件名构造不被新重载截获 |
+
 ## 运行与记录
 
 `scripts/run_codex_eval.py` 为单个案例准备隔离工作区并运行 Codex：

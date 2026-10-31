@@ -1,0 +1,1 @@
+inih 目前只能从文件解析。新增 `int ini_parse_string(const char* string, handler, void* user)`（`handler` 与 `ini_parse` 的回调相同），从以 NUL 结尾的内存字符串解析：对同样的内容，回调序列和返回值要与写入文件后调用 `ini_parse_file` 完全一致，各编译选项下都是如此。同时让 C++ 的 `INIReader` 也能从内存中的字符串构造，已有的按文件名构造方式保持不变。补充相应的测试。

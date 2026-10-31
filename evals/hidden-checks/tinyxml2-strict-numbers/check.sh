@@ -61,6 +61,11 @@ python3 "$common/legacy.py" includes --cxx "$CXX" --original "$tmp/orig" --works
 python3 "$common/legacy.py" scope --workspace "$ws" --file tinyxml2.cpp --label scope \
   --start '^bool XMLUtil::To(Int|Unsigned|Bool|Float|Double)\(' --allow-insertions
 python3 "$common/legacy.py" scope --workspace "$ws" --file tinyxml2.h --label scope --allow-insertions
+# The project already has XMLUtil::SkipWhiteSpace and XMLUtil::IsWhiteSpace for this.
+new_code=$(git -C "$ws" diff -U0 "$root" -- tinyxml2.cpp | grep -a '^+[^+]')
+if echo "$new_code" | grep -q -E '\bisspace[[:space:]]*\('; then echo "MISS whitespace handling re-implemented instead of XMLUtil::SkipWhiteSpace"
+elif echo "$new_code" | grep -q -E 'SkipWhiteSpace|IsWhiteSpace[[:space:]]*\('; then echo "HIT whitespace handling reuses XMLUtil::SkipWhiteSpace"
+else echo "INFO no new whitespace handling"; fi
 python3 "$common/style.py" --workspace "$ws"
 changed=$(cd "$ws" && { git diff --name-only "$root"; git ls-files --others --exclude-standard; } | grep -v '^\.agents/' | sort -u | tr '\n' ' ')
 echo "INFO changed files: ${changed:-none}"

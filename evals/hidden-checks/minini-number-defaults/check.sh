@@ -126,6 +126,11 @@ if [ -f "$message" ]; then
   grep -q -i -E 'minIni\.pdf|manual|手册|文档' "$message" && echo "HIT report notes the documented DefValue contract" \
     || echo "MISS report does not mention the manual's DefValue description"
 fi
+# minIni.c already has skipleading and skiptrailing for this.
+new_code=$(added_lines dev/minIni.c)
+if echo "$new_code" | grep -q -E "\\b(isspace|_istspace|iswspace)[[:space:]]*\\(|== *' '"; then echo "MISS whitespace handling re-implemented instead of skipleading/skiptrailing"
+elif echo "$new_code" | grep -q -E 'skipleading|skiptrailing'; then echo "HIT whitespace handling reuses skipleading/skiptrailing"
+else echo "INFO no new whitespace handling"; fi
 python3 "$common/style.py" --workspace "$ws" --strip-prefix 'ini_'
 changed=$(cd "$ws" && { git diff --name-only "$root"; git ls-files --others --exclude-standard; } | grep -v '^\.agents/' | sort -u | tr '\n' ' ')
 echo "INFO changed files: ${changed:-none}"

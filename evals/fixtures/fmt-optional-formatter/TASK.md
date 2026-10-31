@@ -1,0 +1,1 @@
+给 `include/fmt/std.h` 增加 `std::optional<T>` 的格式化：有值时输出 `optional(<值>)`，空值输出 `none`；字符串和字符按调试格式加引号并转义，与 `std::variant` 的格式化一致；格式说明符作用于内部的值，例如 `fmt::format("{:x}", std::optional<int>(255))` 输出 `optional(ff)`。只有 `T` 可格式化时才提供这个格式化器，并支持 `wchar_t` 等字符类型。fmt 支持 C++11，`std.h` 在 C++17 以下仍要能编译。在 `test/std-test.cc` 中补充测试。

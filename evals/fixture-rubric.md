@@ -162,6 +162,26 @@
 - 项目约束：README 说明不使用动态内存，`minIni.c` 保持 C89，在 `INI_READONLY`、`INI_ANSIONLY`、`NDEBUG`/`INI_NOBROWSE`/`PORTABLE_STRNICMP` 和没有 `INI_REAL` 的 glue 下都不新增诊断，仍能按 C++ 编译；新代码使用 `_tcstol`、`_tcstod`、`_totupper` 等 TCHAR 映射，不直接调用只接受 `char` 的函数；`ini_getf` 仍经 glue 的 `ini_atof` 转换为加分项。`minIni.h` 的 C++ 类保持 C++98。源文件使用 CRLF，不转换换行。
 - 测试：在 `dev/test.c` 或 `dev/test2.cc` 中覆盖数值读取，测试结束后 `test.ini` 恢复原样。
 
+## fmt-optional-formatter
+
+隐藏检查：`hidden-checks/fmt-optional-formatter/check.sh`。基本输出、格式说明符、字符串与字符、嵌套与 ranges、`wchar_t`、约束六组各自编译成独立程序，在 C++17 和 C++20 下运行；`variant`、`monostate`、`thread::id` 的输出与原始实现比较。
+
+- 行为：有值输出 `optional(<值>)`，空值输出 `none`；`{:x}`、`{:>4}`、`{:.2f}` 作用于内部的值；字符串和字符加引号并转义；`optional<optional<int>>`、`optional<vector<int>>`、`vector<optional<int>>` 正确嵌套；`fmt::is_formattable<std::optional<NotFormattable>>` 为假。
+- 复用与陷阱：照抄相邻的 `variant` 格式化器会用 `detail::write<Char>(out, "variant(")` 写窄字符串，这在 `wchar_t` 下编译不过（原始 `variant` 本身也有这个问题），也无法应用格式说明符。`ranges.h` 已有 `detail::string_literal` 和 `maybe_set_debug_format` 的写法，复用它们能同时满足字符类型和调试格式；直接复用 `write_variant_alternative` 或 `write_escaped_string` 也算复用。
+- 泛型：一个 `formatter<std::optional<T>, Char, enable_if_t<is_formattable<T, Char>::value>>` 特化就够了，持有 `formatter<T, Char>` 并把解析委托给它；为唯一的 `std::optional` 新建 `is_optional_like` 一类的 trait 或通用包装基类属于过度设计，在 `style.py` 的新增类型与行数中体现。
+- 项目约束：fmt 支持 C++11，`<optional>` 只在 C++17 且可包含时引入，用 `__cpp_lib_optional` 保护；C++11/14/17/20 下 clang 与 GCC 都不新增诊断，实例化时不产生警告。
+- 测试与文档：`test/std-test.cc` 覆盖 `std::optional`；`doc/api.rst` 列出 `std.h` 支持的类型，更新它为加分项。
+
+## httplib-header-injection
+
+隐藏检查：`hidden-checks/httplib-header-injection/check.sh`。用原始 TCP 监听记录客户端实际发出的字节，检查 11 个入口：`Post`、`Put`、`Patch`、`Delete` 的 `content_type`，内容提供者形式的 `Post`，`Headers` 参数的值、名称和只含 LF 的值，带 `Headers` 的 `Post`，`set_default_headers`，`set_bearer_token_auth`；另有 3 个必须原样发送的对照（正常的 Content-Type、含冒号和制表符的值、UTF-8 值）。
+
+- 行为：题目点名的是 `Post` 的 `content_type`，合同是“客户端发出的请求中不能出现含 CR/LF 的头部”，所以调用方传入的 `Headers`、默认头和 bearer token 都在范围内。上游 0.12.4 的修复把 `headers.emplace` 换成 `set_header`，只覆盖 `content_type` 路径，在这里不满足；在 `write_request` 写出头部前统一过滤可以一次覆盖所有入口。头部直接丢弃，请求照常发送；让整个请求失败或抛异常不满足。
+- 复用：项目已有 `detail::has_crlf` 和 `Request::set_header` 的同样语义，重新手写 CR/LF 判断记为软判据不满足。
+- 不能扩大：不改已有函数签名，不拒绝冒号、制表符或非 ASCII 的合法值。
+- 项目约束：C++11，测试 Makefile 的 `-Wall -Wextra -Wtype-limits -Wconversion -Wshadow` 与 `-fno-exceptions -DCPPHTTPLIB_NO_EXCEPTIONS` 下 clang 和 GCC 都不新增诊断；`ServerTest` 离线套件仍然通过。
+- 测试与报告：`test/test.cc` 覆盖头部注入；说明中列出覆盖的入口。
+
 ## 记录方法
 
 在仓库外记录每次执行的模型/宿主、skill 与输入快照、原始提示、修改及命令结果，不提交运行报告或产物。分别标注行为、复用、保持不变量、范围控制和证据是否满足。

@@ -69,6 +69,18 @@
 - 两个案例都有题目点名之外、承担同一合同的入口，也有看起来相似但合同不同、必须保持不变的接口（stb 的回调变体、minIni 的 `ini_getbool`）。
 - `tinyxml2-strict-numbers` 再用当前技能和 `9bce81b` 各运行一组，与第四轮已有结果比较；这组用过的案例只作对照，不计为独立复测。
 
+## 第六轮：复杂的现代 C++ 仓库
+
+前几轮的仓库以 C 和 C++98 为主。第六轮换成模板较重的 {fmt} 和单头文件网络库 cpp-httplib，检验同族入口、复用已有机制和泛型写法；技能组使用加入“先复用、不处理不会出现的情况、泛型与模板元编程”之后的版本，并与第五轮的技能版本（`--skills-rev 8d73c2e`）和无技能组比较。
+
+| 案例 | 来源 | 任务 | 隐藏检查 |
+| --- | --- | --- | --- |
+| `fmt-optional-formatter` | {fmt} 9.1.0 | [新增](fmt-optional-formatter/TASK.md) `std::optional` 的格式化 | 六组行为在 C++17/20 下分别编译；`wchar_t` 与约束；C++11–20 的诊断；已有格式化器输出不变 |
+| `httplib-header-injection` | cpp-httplib 0.12.3 | [修复](httplib-header-injection/TASK.md) `content_type` 的 CRLF 注入（CVE-2023-26130） | 在线路上检查 11 个客户端入口和 3 个对照；离线 `ServerTest` 套件；C++11 与无异常构建的诊断 |
+
+- fmt 中相邻的 `variant` 格式化器本身在 `wchar_t` 下编译不过，照抄它会把问题带进新代码；`ranges.h` 已有正确的写法。
+- httplib 上游 0.12.4 的修复只覆盖 `content_type` 路径，按题目的合同，调用方传入的头部也在范围内。
+
 ## 运行与记录
 
 `scripts/run_codex_eval.py` 为单个案例准备隔离工作区并运行 Codex：

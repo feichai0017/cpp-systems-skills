@@ -11,6 +11,7 @@ check() {
 check "Client layout change (new member)"            'next_request_id_|sizeof|布局|layout|对象大小'
 check "Observer vtable insertion / new pure virtual" 'OnReconnecting|vtable|虚函数表|虚表|纯虚'
 check "Consistency enum renumbering"                 'kStrong.*(2|重新编号|renumber)|枚举.*(值|编号)|enum.*(value|renumber)'
-check "inline DefaultTimeout inlined into callers"   'DefaultTimeout'
+check "inline DefaultTimeout inlined into callers"   'DefaultTimeout|内联|inline|500 *ms'
 check "soname / SOVERSION decision"                  'SOVERSION|soname|libkvclient\.so\.2|主版本'
-check "Version() treated as compatible addition"     'Version\(\)'
+flagged=$(grep -i -E 'Version\(\)' "$review" | grep -c -i -E 'P0|P1|阻断|破坏|break' || true)
+[ "$flagged" -eq 0 ] && echo "HIT  Version() not reported as an ABI break" || echo "MISS Version() reported as an ABI break"

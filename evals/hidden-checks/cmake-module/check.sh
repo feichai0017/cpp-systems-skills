@@ -29,16 +29,17 @@ for block in blocks:
         elif token == "kvstore_checksum":
             keyword = current
 report(keyword == "PRIVATE", f"kvstore_checksum linked PRIVATE to kvstore_storage (found {keyword})")
-dup = [p for p in ws.rglob("*.*") if p.suffix in (".h", ".hpp", ".cc", ".cpp") and "src/checksum" not in str(p)
-       and ".agents" not in p.parts and re.search(r"0x[eE][dD][bB]88320", p.read_text())]
-report(not dup, "reuses the existing CRC32 instead of reimplementing it")
+# An independent CRC in tests is a legitimate oracle; only production code must reuse Crc32.
+dup = [p for p in (ws / "include").rglob("*.*") if re.search(r"0x[eE][dD][bB]88320", p.read_text())]
+dup += [p for p in (ws / "src").rglob("*.*") if "src/checksum" not in str(p) and re.search(r"0x[eE][dD][bB]88320", p.read_text())]
+report(not dup, "production code reuses the existing CRC32 instead of reimplementing it")
+tested = [p for p in (ws / "tests").rglob("*.*") if "ReadRecords" in p.read_text()]
+report(bool(tested), "ReadRecords is exercised by a test under tests/")
 PY
 
 echo "--- build, ctest"
 cmake -S "$ws" -B "$tmp/plain" -G Ninja >/dev/null 2>&1 && cmake --build "$tmp/plain" >/dev/null 2>&1 \
   && echo "PASS project builds" || echo "FAIL project builds"
-tests=$(ctest --test-dir "$tmp/plain" -N 2>/dev/null | grep -c "Test *#")
-[ "$tests" -gt 1 ] && echo "PASS new test registered with ctest ($tests tests)" || echo "FAIL new test registered ($tests tests)"
 ctest --test-dir "$tmp/plain" >/dev/null 2>&1 && echo "PASS ctest" || echo "FAIL ctest"
 
 echo "--- hidden behavior under ASan/UBSan"

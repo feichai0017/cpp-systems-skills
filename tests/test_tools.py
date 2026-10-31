@@ -231,5 +231,46 @@ class PackageLinksTest(unittest.TestCase):
                 self.assertTrue(any("must explicitly allow implicit invocation" in error for error in errors), errors)
 
 
+class CodexEvalRunnerTest(unittest.TestCase):
+    RUNNER = ROOT / "scripts" / "run_codex_eval.py"
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.out = Path(self.temp.name) / "runs"
+
+    def prepare(self, *args):
+        return subprocess.run([sys.executable, str(self.RUNNER), *args, "--out", str(self.out), "--dry-run"],
+                              text=True, capture_output=True)
+
+    def test_skills_arm_installs_skills_outside_the_reviewed_history(self):
+        result = self.prepare("short-io", "--arm", "skills")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        workspace = Path(result.stdout.strip())
+        self.assertTrue((workspace / ".agents" / "skills" / "cpp-core" / "SKILL.md").exists())
+        tracked = subprocess.run(["git", "ls-files"], cwd=workspace, text=True, capture_output=True).stdout
+        self.assertNotIn(".agents", tracked)
+        self.assertFalse((workspace / "evals").exists())
+        status = subprocess.run(["git", "status", "--porcelain"], cwd=workspace, text=True, capture_output=True).stdout
+        self.assertEqual(status, "")
+
+    def test_setup_script_builds_history_and_control_has_no_skills(self):
+        result = self.prepare("abi-review", "--arm", "control")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        workspace = Path(result.stdout.strip())
+        self.assertFalse((workspace / ".agents").exists())
+        self.assertFalse((workspace / "setup.sh").exists())
+        log = subprocess.run(["git", "log", "--format=%s", "v1.0..feature"], cwd=workspace,
+                             text=True, capture_output=True, check=True).stdout
+        self.assertIn("reconnect", log)
+
+    def test_output_inside_repository_is_rejected(self):
+        result = subprocess.run([sys.executable, str(self.RUNNER), "short-io", "--arm", "control",
+                                 "--out", str(ROOT / "runs"), "--dry-run"], text=True, capture_output=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("outside the repository", result.stderr)
+        self.assertFalse((ROOT / "runs").exists())
+
+
 if __name__ == "__main__":
     unittest.main()

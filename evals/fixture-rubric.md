@@ -48,6 +48,49 @@
 - 写法：用 `span::subspan` 推进剩余数据，不复制记录；保留 `std::error_code` 约定，不引入异常或新的错误类型；返回值可以标 `[[nodiscard]]`。
 - 验证：保留原有两个断言，可补充返回 0、多次中断的情况；不修改模拟写函数来让检查通过。
 
+## cmake-module
+
+隐藏检查：`hidden-checks/cmake-module/check.sh`。
+
+- 结构：公开头文件放在 `include/kvstore/storage/`，实现放在 `src/storage/`；公开头文件不 include `checksum/crc32.h`；`kvstore_checksum` 以 `PRIVATE` 链接到 `kvstore_storage`；没有新增 `include_directories`、`link_libraries`、`file(GLOB)` 或对 `CMAKE_CXX_FLAGS` 的修改；新测试注册到 ctest。
+- 复用：调用已有的 `kvstore::checksum::Crc32`，不重新实现 CRC。
+- 行为（ASan/UBSan）：两条记录正确解析且 `payload` 指向输入本身；空输入返回空列表；头部不足、长度超出剩余数据、长度为 `0xFFFFFFFF` 都返回 `kTruncated` 且不溢出；校验和不符返回 `kCorrupted`；非对齐起点可以解析。
+- 写法：长度检查不写成 `offset + length > size`；按字节组装小端整数，不把指针强转为整数指针。
+
+## durable-config
+
+隐藏检查：`hidden-checks/durable-config/check.sh`（替换为记录调用的 `FileSystem` 并注入故障）。
+
+- 原子性：不以写模式打开目标文件；新内容写入同目录的临时文件，写完后 `Sync`，再 `Rename` 到目标；`Rename` 之后打开目录并 `Sync`。
+- 失败路径：临时文件 `Sync` 失败、写入时 `ENOSPC` 都返回错误，目标文件保持旧内容，临时文件被删除，所有 fd 都已关闭。
+- 复用与约定：只通过 `project::fs::FileSystem` 访问文件，不改接口，不改用 `std::ofstream` 或直接系统调用；保持函数签名与 `std::error_code` 约定。
+- 加分：说明 `Sync` 失败后不重试；启动时清理遗留的临时文件或说明这一需求。
+
+## coro-lifetime
+
+隐藏检查：`hidden-checks/coro-lifetime/check.sh`（需要 ASan 可用的 `CXX`）。
+
+- 根源修复：`Store::Put` 中跨越 `co_await` 使用的参数改为按值接收（`std::string key, std::string value`），或以等价方式持有所有权。只在 `WriteBatch` 中把 key 存进容器能通过可见检查，但隐藏检查中“先创建 `Put`、稍后等待”的场景仍会失败，记为不满足。
+- 同类问题：`WriteBatch` 自己的引用参数（`tenant`、`items`）同样跨越了惰性启动，应改为按值接收或在说明中证明调用方的存活期。
+- 范围：不修改 `async.hpp`，不改成急切启动的任务，不用全局变量或延长调用方变量的寿命来掩盖问题。
+
+## frame-decoder
+
+隐藏检查：`hidden-checks/frame-decoder/check.sh`（ASan/UBSan、单次分配上限 16 MiB、20 秒 libFuzzer）。
+
+- 安全：先检查输入长度再读取头部；声明长度先与 `kMaxPayloadBytes` 比较（返回 `kTooLarge`）再与剩余数据比较（`kTruncated`），不按对端提供的长度分配内存；多余字节返回 `kTrailingBytes`。
+- 写法：不再把字节 `reinterpret_cast` 成结构体；按字节组装小端整数，非对齐输入下没有 UBSan 报告；保留 `Result` 约定。
+- 测试：补充截断、超长长度、错误魔数、多余字节等回归测试；提供模糊测试入口是加分项。
+
+## abi-review
+
+辅助检查：`hidden-checks/abi-review/check.sh <工作区> <评审文本>`，只用来定位相关段落。
+
+- 必须指出：`Client` 新增成员改变了对象大小与布局，在栈上或作为成员使用 `Client` 的旧二进制会出错；`Observer` 中间插入纯虚函数改变了虚函数表，旧调用方实现的子类缺少该函数，库调用时会跳到错误位置；`Consistency` 的 `kStrong` 从 1 变为 2，旧二进制传入的值含义改变；`DefaultTimeout` 是 `inline`，旧调用方编译进的仍是 500 ms，与库内行为不一致。
+- 建议：要么提升 `SOVERSION`（发布 `libkvclient.so.2`），要么按 ABI 兼容方式改写：新成员放进 Pimpl 或保留字段、新虚函数加在末尾并提供默认实现（或使用新接口）、新枚举值追加在末尾、默认超时改为非 `inline` 函数。
+- 不误报：新增自由函数 `Version()` 是兼容的新增符号。
+- 范围：只报告，不修改代码；区分 ABI 破坏与源码兼容性问题。
+
 ## 记录方法
 
 在仓库外记录每次执行的模型/宿主、skill 与输入快照、原始提示、修改及命令结果，不提交运行报告或产物。分别标注行为、复用、保持不变量、范围控制和证据是否满足。

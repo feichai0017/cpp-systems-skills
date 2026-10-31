@@ -39,6 +39,12 @@ description: "C++ 生命周期、悬垂借用、异步回调、并发共享状�
 - 重试要明确 operation identity、幂等范围与 ACK 意义；不删除去重、额度或 completion 保护来减少分支。
 - 销毁顺序应阻止新任务进入，结束或排空已有访问，再释放被访问资源。等待与取消策略需服从项目的实时性和关闭合同。
 
+设计线程池、任务队列、关闭流程、弱内存序或无锁结构（hazard pointer、epoch、RCU、ABA）时，读 [并发模式](references/concurrency-patterns.md)。
+
+## 协程与异步
+
+涉及 C++20 协程、future 或回调链时，读 [协程与异步模型](references/coroutines-and-async.md)：跨越 `co_await` 的引用与 lambda 捕获、`this` 的寿命、结构化并发、取消与超时、持锁挂起、恢复线程变化。
+
 ## 跨进程与设备
 
 涉及共享内存、RPC、DMA、RDMA 或设备队列时，按需读 [跨边界合同](references/cross-boundary.md)。本地锁、C++ 对象寿命与设备完成是不同保证，逐项说明。

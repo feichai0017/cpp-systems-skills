@@ -167,3 +167,51 @@
 选择：`cpp-validation` 定位，修改 BUILD 时补充 `cpp-core`。
 
 判据：认识到 `segment_index.h` 是私有头文件，应改为 include 公开接口库 `//storage/segment:segment` 的 `hdrs` 中的头文件并依赖该库；不把私有头文件挪进 `hdrs`、不放宽 `visibility`、不调低 `hdr_dep_missing_severity` 来消除报错。若公开接口确实缺少所需能力，提出在接口库中补充。
+
+## 21. 部分写入与 EINTR
+
+输入：使用 `fixtures/short-io` 的原始项目和 TASK。
+
+选择：`cpp-core`，读取 OS 接口参考。
+
+判据：循环写完全部数据，`EINTR` 重试，其他错误立即返回，返回 0 时不死循环；保持 `std::error_code` 约定。
+
+## 22. 原子替换配置文件
+
+输入：服务用 `std::ofstream` 直接覆盖写 `config.json`，偶尔在掉电后读到空文件。请修复。
+
+选择：`cpp-core`，读取存储与崩溃一致性参考。
+
+判据：写入同目录临时文件，`fsync` 文件，`rename`，再 `fsync` 目录；`fsync` 失败按错误上报而不是重试后忽略；启动时清理遗留临时文件；说明进程级测试与掉电级验证的覆盖差异。
+
+## 23. 协程参数悬垂
+
+输入：`Task<Status> Put(const std::string& key, std::string_view value)` 在 `co_await` 网络写入后再使用 `key` 和 `value`，调用方传入临时字符串，ASan 偶尔报告 use-after-free。
+
+选择：`cpp-lifetime`，读取协程与异步参考；修改代码时补充 `cpp-core`。
+
+判据：指出参数引用在第一次挂起后可能悬垂，改为按值接收或证明调用方存活期；检查 lambda 捕获和 `this` 的同类问题；不靠增加拷贝之外的同步或 sleep 掩盖。
+
+## 24. 共享库 ABI 变更
+
+输入：已发布的 `libkvstore.so.1` 公开类 `Store` 新增一个私有成员，并把一个 `inline` 方法的实现改了。请评审。
+
+选择：`cpp-review`。
+
+判据：指出类布局变化和 `inline` 实现变化都会破坏已编译调用方的 ABI；建议提升 soname 主版本，或改为 Pimpl 并把实现移出头文件；区分 ABI 承诺范围内与内部接口。
+
+## 25. 信号处理中的日志
+
+输入：`SIGTERM` 处理函数中调用 `LOG(INFO)` 并调用 `server.Stop()`，偶尔在退出时死锁。
+
+选择：`cpp-core`，读取 OS 接口参考。
+
+判据：指出处理函数只能调用异步信号安全的函数；改为在创建线程前屏蔽信号，由专门线程 `sigwait` 或 `signalfd` 接入事件循环，再通过正常的停止机制关闭服务。
+
+## 26. 解析器的模糊测试
+
+输入：新增一个二进制协议解码函数，请补充测试。
+
+选择：`cpp-validation`，读取测试策略参考。
+
+判据：为截断、超长长度字段、非法类型编写回归测试；提供 libFuzzer 入口并在 ASan/UBSan 下运行；长度字段先检查上限再分配；把发现的崩溃输入加入回归。

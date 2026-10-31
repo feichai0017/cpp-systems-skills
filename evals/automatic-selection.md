@@ -19,5 +19,9 @@
 | 用现代 C++ 重写这个模块的资源管理 | `cpp-core`；涉及跨线程或异步释放时补充 `cpp-lifetime` |
 | 给这个 CMake 库加一个 fmt 依赖并新增源文件 | `cpp-core`；按目标与 `PUBLIC`/`PRIVATE` 修改，不启动性能或评审流程 |
 | Blade 构建报 missing dependency，帮我修 | `cpp-validation` 定位，修改 BUILD 或代码时补充 `cpp-core` |
+| 这个 C++ 服务写配置文件不是原子的，掉电后会坏 | `cpp-core`（存储与崩溃一致性参考） |
+| 协程里引用参数偶尔悬垂，帮我查 | `cpp-lifetime`，修改代码时补充 `cpp-core` |
+| 给这个 C++ 协议解码器加模糊测试 | `cpp-validation` |
+| 这次改动会不会破坏 libfoo.so 的 ABI | `cpp-review` |
 
 选择可随证据变化；判据是加载是否有任务依据、是否漏掉用户设定的编码底座，以及是否造成无关工作，不能机械要求永远使用固定数量的技能。

@@ -38,6 +38,24 @@ description: "C++ 编写、修改和重构代码的默认技能（C++, cpp, .cc/
 - CMake 项目按目标组织（`target_*` 加 `PUBLIC`/`PRIVATE`，依赖链接导入目标），见 [CMake 参考](references/build-cmake.md)。Blade 项目在 `hdrs`/`srcs`/`deps` 中声明头文件与依赖，并设置 `visibility`，见 [Blade 参考](references/build-blade.md)。
 - 第三方依赖沿用项目已有来源（包管理器、FetchContent、Blade `thirdparty/` 或 `vcpkg#`），固定版本；同一进程只保留一个版本。
 
+## 系统编程专题
+
+只在任务涉及时读取对应参考，不为普通修改加载全部：
+
+| 任务涉及 | 参考 |
+| --- | --- |
+| 设计错误类型、传播错误、系统调用失败、异常保证与 `noexcept` | [错误处理与异常安全](references/error-handling.md) |
+| fd、`EINTR` 与短读写、`O_DIRECT`、`mmap`、时钟、信号、子进程、epoll/io_uring | [OS 与 POSIX 接口](references/os-interfaces.md) |
+| socket、消息边界、字节序、背压、截止时间、重试、序列化演进 | [网络与 RPC](references/networking.md) |
+| `fsync`、原子替换文件、WAL、磁盘格式、文件锁 | [存储与崩溃一致性](references/storage-durability.md) |
+| 分配器与 `pmr`、对齐与伪共享、字节与对象转换、整数溢出、迭代器失效 | [内存与对象模型](references/memory-and-object-model.md) |
+| 共享库 ABI、符号可见性、C 接口、插件、Python/Rust 绑定 | [ABI 与跨语言互操作](references/abi-and-interop.md) |
+| 日志、指标、追踪、断言、崩溃诊断、健康检查 | [可观测性](references/observability.md) |
+| 不可信输入、格式串、文件权限、密钥与随机数、编译加固 | [安全与加固](references/security-hardening.md) |
+| CUDA stream/event/内存、错误检查、kernel 组织 | [CUDA C++](references/cuda-cpp.md) |
+
+协程、线程池、原子与无锁回收属于 `cpp-lifetime`；编译优化与剖析工具属于 `cpp-performance`；测试策略与未定义行为属于 `cpp-validation`。
+
 ## 简化实现
 
 - 新增通用组件前，用符号、职责和调用示例搜索仓库，再检查已引入依赖的实际版本、接口、实现与测试。按“仓库已有实现 → 已引入依赖和当前标准库 → 合适的新依赖 → 参考相似实现 → 自行实现缺失部分”查找，比较语义、所有权、线程/进程模型及维护成本。

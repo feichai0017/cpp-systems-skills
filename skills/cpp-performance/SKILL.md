@@ -23,6 +23,8 @@ description: "C++ 延迟、吞吐、内存或数据搬运优化，benchmark/prof
 
 区分“代码存在某路径”“计数器确认实际走过”“profiler 显示消耗”“对照实验确认收益”。少一次调用或少一层包装不等于已经证明更快。
 
+选择编译优化（`-O3`、`-march`、LTO、PGO、BOLT）、使用 perf/火焰图/`perf c2c`/heaptrack/bpftrace 定位成本、分析缓存与 NUMA，或缩短构建时间时，读 [工具链与性能剖析](references/toolchain-and-profiling.md)。
+
 对于批处理/列式数据，区分逻辑元素、物理表示、选择索引与有效性位图。优先检查能否通过已有的统一访问表示处理，避免为简化调用无条件 materialize/flatten；是否消除了转换、分配或拷贝需要追踪实际路径并测量，不能推定所有表示转换都零成本。
 
 ## 建立可比较实验

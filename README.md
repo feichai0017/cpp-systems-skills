@@ -25,6 +25,39 @@
 
 日常编码以 `cpp-core` 为底座，普通写码默认检查实现是否直接、写法是否符合规范、命名是否准确，无需额外要求精简。专项任务选择对应技能，不要求每次加载全部六个；`cpp-simplify` 用于专门的精简任务。专项技能重复少量必要边界，以便单独安装，不依赖其他技能或专有工具。
 
+## 主题覆盖
+
+每个主题只在相关任务中读取；入口文件列出何时读取哪份参考。
+
+| 主题 | 位置 |
+| --- | --- |
+| 现代写法、按标准的设施、常见旧式写法替换 | `cpp-core` · [现代 C++ 写法](skills/cpp-core/references/modern-idioms.md) |
+| 类型与模块设计范式 | `cpp-core` · [设计范式](skills/cpp-core/references/design-paradigms.md) |
+| 错误模型、系统错误、异常安全、`noexcept` | `cpp-core` · [错误处理](skills/cpp-core/references/error-handling.md) |
+| 目录布局、头文件与 include 规则、模块分层 | `cpp-core` · [项目结构](skills/cpp-core/references/project-layout.md) |
+| CMake 目标、依赖管理、presets、安装导出 | `cpp-core` · [CMake](skills/cpp-core/references/build-cmake.md) |
+| Blade BUILD、头文件依赖检查、可见性、第三方库 | `cpp-core` · [Blade](skills/cpp-core/references/build-blade.md) |
+| fd、`EINTR` 与短读写、`mmap`、时钟、信号、进程、epoll/io_uring | `cpp-core` · [OS 与 POSIX 接口](skills/cpp-core/references/os-interfaces.md) |
+| socket、消息边界、背压、截止时间、重试、序列化演进 | `cpp-core` · [网络与 RPC](skills/cpp-core/references/networking.md) |
+| `fsync`、原子替换、WAL、磁盘格式 | `cpp-core` · [存储与崩溃一致性](skills/cpp-core/references/storage-durability.md) |
+| 分配器、对齐、对象与字节、整数溢出、迭代器失效 | `cpp-core` · [内存与对象模型](skills/cpp-core/references/memory-and-object-model.md) |
+| ABI、符号可见性、C 接口、插件、Python/Rust 绑定 | `cpp-core` · [ABI 与互操作](skills/cpp-core/references/abi-and-interop.md) |
+| 日志、指标、追踪、崩溃诊断 | `cpp-core` · [可观测性](skills/cpp-core/references/observability.md) |
+| 不可信输入、密钥、随机数、编译加固 | `cpp-core` · [安全与加固](skills/cpp-core/references/security-hardening.md) |
+| CUDA stream/event/内存与错误检查 | `cpp-core` · [CUDA C++](skills/cpp-core/references/cuda-cpp.md) |
+| 标准库与第三方库选型、参考代码库 | `cpp-core` · [基础库选型](skills/cpp-core/references/library-selection.md)、[项目与实现参考](skills/cpp-core/references/project-references.md) |
+| 寿命、发布与回收、取消竞争 | [cpp-lifetime](skills/cpp-lifetime/SKILL.md) |
+| 协程与异步模型 | `cpp-lifetime` · [协程与异步](skills/cpp-lifetime/references/coroutines-and-async.md) |
+| 线程池、关闭顺序、原子与无锁回收 | `cpp-lifetime` · [并发模式](skills/cpp-lifetime/references/concurrency-patterns.md) |
+| 共享内存、RPC、DMA/RDMA 跨边界合同 | `cpp-lifetime` · [跨边界合同](skills/cpp-lifetime/references/cross-boundary.md) |
+| 编译优化、剖析工具、缓存与 NUMA、构建时间 | `cpp-performance` · [工具链与性能剖析](skills/cpp-performance/references/toolchain-and-profiling.md) |
+| 测试替身、确定的并发测试、故障注入、模糊测试 | `cpp-validation` · [测试策略](skills/cpp-validation/references/testing-strategies.md) |
+| 未定义行为的类别与检测 | `cpp-validation` · [未定义行为](skills/cpp-validation/references/undefined-behavior.md) |
+| sanitizer、clang-tidy、警告选项 | `cpp-validation` · [工具配置](skills/cpp-validation/references/tooling.md) |
+| 评审范围与发现质量 | [cpp-review](skills/cpp-review/SKILL.md) |
+
+不覆盖的内容：C++20 模块的工程化落地（工具链仍在成熟中）、非 NVIDIA 加速器、Windows 专有 API，以及具体业务领域的协议。
+
 ## 自动选择
 
 六个技能都显式设置 `policy.allow_implicit_invocation: true`。Codex 可根据任务与 `description` 的匹配自动选用，无需每次写 `$cpp-core`；描述的开头保留最关键的场景词。`default_prompt` 只是手动调用的起始提示，不负责路由。[官方技能说明](https://learn.chatgpt.com/docs/build-skills)

@@ -60,3 +60,12 @@ ECC 与 karpathy-guidelines 的原始用户链接分别重定向到上表地址�
 - Blade：[chen3feng/blade-build](https://github.com/chen3feng/blade-build) 固定提交 `b95bff3e4e35c3b53265c7522e42e1aedf84f3f8` 的 `doc/en` 下 C/C++ 规则、BUILD 文件、配置、命令行、测试、工作区、vcpkg、IDL 与编辑器支持文档。没有在 Blade 工作区中实际构建示例。
 - clang-tidy：`examples/clang-tidy.modern.yaml` 中的检查名与可选检查用 clang-tidy 22.1.7 的 `--list-checks` 核对过。
 - 标准库差异：`std::atomic<std::shared_ptr<T>>` 在 GCC 14 的 libstdc++ 中可用，在 LLVM 22 的 libc++ 中触发 “requires trivially copyable” 静态断言；GCC 14 在 `-std=c++14 -pedantic -Werror` 下接受 `[[nodiscard]]`，clang 22 拒绝。
+
+## 系统编程专题（2026-10-31）
+
+- 系统接口语义以 Linux man-pages 为准：`close(2)`（失败后不重试）、`write(2)`/`pread(2)`（部分完成与 `EINTR`）、`fsync(2)`、`rename(2)`、`open(2)`（`O_CLOEXEC`、`O_DIRECT` 对齐、`O_TMPFILE`）、`statx(2)`（`STATX_DIOALIGN`）、`signal-safety(7)`、`pidfd_open(2)`、`fcntl(2)`（OFD 锁）。
+- `fsync` 失败后的语义参考 PostgreSQL 社区 2018 年对 Linux 回写错误处理的讨论（常称 fsyncgate）：错误可能只报告一次，之后的 `fsync` 成功不代表数据已落盘。
+- 编译加固选项参考 [OpenSSF 编译器加固指南](https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++.html)。
+- 无锁回收与异步：C++26 工作草案中的 `std::hazard_pointer`、`std::rcu` 与 `std::execution`；Folly `hazptr`、liburcu、`folly::coro` 与 Asio awaitable 的公开文档。
+- 验证方式：可独立编译的示例在 Docker `gcc:14` 镜像（Linux）与 Homebrew clang 22.1.7（libc++）下以 `-Wall -Wextra -Wpedantic -Werror` 编译并运行，包括写入后读回、短读报错、超大帧长被拒绝、C 头文件单独以 C11 编译。libFuzzer 入口按文档原样以 `-fsanitize=fuzzer,address,undefined` 构建并运行 20000 次。CUDA 示例未编译。
+- 新增 `short-io` 案例的初始检查按设计失败；仓库外的参考解答在 GCC 14 下通过。

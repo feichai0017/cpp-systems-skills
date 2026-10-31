@@ -38,6 +38,7 @@ python3 scripts/review_scope.py --repo /path/to/project --scope worktree
 - 检查语义命名：动作与查询、单位、容量与大小、发起与完成是否区分。工具检查通过不证明名称与行为一致。
 - 检查新代码是否在项目标准内使用现代写法：裸 `new`/`delete`、缺少 `override`、可移动类型的移动操作不是 `noexcept`、单参数构造未 `explicit`、`return std::move(local)`、C 风格转换、输出参数、`catch (...)` 吞错。只在会导致缺陷、维护负担或与相邻代码不一致时报告；同时检查是否用了超出项目标准的特性。
 - 检查文件与构建：新头文件放在正确的公开/私有位置且自包含；CMake 目标的 `PUBLIC`/`PRIVATE` 与头文件中的实际依赖一致，没有新增目录级 `include_directories`；Blade 目标的 `hdrs`、`deps` 与 `visibility` 与 include 关系一致；新增第三方依赖固定了版本。
+- 按改动涉及的系统领域检查：系统调用处理 `EINTR` 与部分读写，失败后立即保存 `errno`；持久化路径的 `fsync`、`rename` 与目录同步顺序正确，`fsync` 失败不被重试掩盖；来自网络或文件的长度、偏移先校验上限与溢出再使用；信号处理函数只调用异步信号安全的函数；跨 `co_await` 的引用与捕获仍然有效；已发布的共享库或 C 接口没有破坏 ABI，异常不穿过 C 边界；CUDA 资源在异步操作完成后才释放。
 
 ## 验证与发现
 

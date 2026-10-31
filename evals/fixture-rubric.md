@@ -180,7 +180,7 @@
 - 复用：项目已有 `detail::has_crlf` 和 `Request::set_header` 的同样语义，重新手写 CR/LF 判断记为软判据不满足。
 - 不能扩大：不改已有函数签名，不拒绝冒号、制表符或非 ASCII 的合法值。
 - 项目约束：C++11，测试 Makefile 的 `-Wall -Wextra -Wtype-limits -Wconversion -Wshadow` 与 `-fno-exceptions -DCPPHTTPLIB_NO_EXCEPTIONS` 下 clang 和 GCC 都不新增诊断；`ServerTest` 离线套件仍然通过。
-- 测试与报告：`test/test.cc` 覆盖头部注入；说明中列出覆盖的入口。
+- 测试与报告：`test/test.cc` 覆盖头部注入。在序列化处统一过滤时，说明不必逐个列出入口，所以报告提到哪些入口只记录、不评分。移动已有的 `detail::has_crlf` 使其在 `write_headers` 之前定义属于复用。
 
 ## 记录方法
 
@@ -188,4 +188,4 @@
 
 同一模型的一次成功只能算一次 smoke。规则修改后使用新的同类输入复测，不把已泄露判据的重复运行计作独立评估。
 
-第五轮起，`hidden-checks/common/style.py` 对非测试源码统计新增行数、新增函数和新增判空检查，并列出过长的新名称；新名称带 `ensure`、`try`、`maybe`、`safe`、`checked`、`validate`、`do`、`handle`、`process` 前缀记为软判据不满足。行数和函数数只用于比较各组，不单独判定好坏。
+第五轮起，`hidden-checks/common/style.py` 对非测试源码统计新增行数、新增函数和新增判空检查，并列出过长的新名称；新名称带 `ensure`、`try`、`maybe`、`safe`、`checked`、`validate`、`do`、`handle`、`process` 前缀记为软判据不满足。原始仓库中已经出现的名称视为沿用项目命名，不计入新名称。行数和函数数只用于比较各组，不单独判定好坏。

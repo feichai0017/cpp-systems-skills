@@ -53,6 +53,11 @@ def main() -> int:
             for name in [m.group(1) for m in VARIABLE.finditer(line)] + functions[-1:]:
                 if name not in KEYWORDS and not re.search(r"\b%s\b" % re.escape(name), removed):
                     names.add(name)
+    # Names the original repository already uses anywhere follow its convention, not the change.
+    names = {name for name in names
+             if subprocess.run(["git", "-C", args.workspace, "grep", "-q", "-w", "-F", name, root, "--"],
+                               capture_output=True).returncode != 0}
+    functions = [name for name in functions if name in names]
     stripped = {name: re.sub(r"^(%s)" % args.strip_prefix, "", name) if args.strip_prefix else name for name in names}
     defensive = sorted(name for name, bare in stripped.items() if DEFENSIVE.match(bare))
     long_names = sorted(name for name, bare in stripped.items() if len(bare) >= args.long)

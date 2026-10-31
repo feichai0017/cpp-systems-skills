@@ -47,21 +47,28 @@ for compiler in "$CXX" ${GXX:+"$GXX"}; do
   done
 done
 
-# The project already has detail::has_crlf and Request::set_header for this.
-new_code=$(git -C "$ws" diff -U0 "$root" -- httplib.h | grep -a '^+[^+]')
+# The project already has detail::has_crlf and Request::set_header for this. Lines that only
+# moved (removed and added unchanged, for example has_crlf placed before write_headers) are not new.
+git -C "$ws" diff -U0 "$root" -- httplib.h | grep -a '^-[^-]' | cut -c2- | sort >"$tmp/removed.txt"
+git -C "$ws" diff -U0 "$root" -- httplib.h | grep -a '^+[^+]' | cut -c2- | sort >"$tmp/added.txt"
+new_code=$(comm -13 "$tmp/removed.txt" "$tmp/added.txt")
 if echo "$new_code" | grep -q -E "== *'\\\\r'|== *'\\\\n'|find_first_of\(\"\\\\r\\\\n\"|find\('\\\\r'\)|find\('\\\\n'\)"; then
   echo "MISS CR/LF detection re-implemented instead of detail::has_crlf"
 elif echo "$new_code" | grep -q -E 'has_crlf|set_header'; then echo "HIT reuses detail::has_crlf or set_header"
 else echo "INFO no new CR/LF detection"; fi
-api_changed=$(git -C "$ws" diff -U0 "$root" -- httplib.h | grep -a -E '^-[^-]' | grep -c -E '^\-\s*(Result|void|bool|inline Result|inline void|inline bool) [A-Za-z_:]+\(')
+api_changed=$(comm -23 "$tmp/removed.txt" "$tmp/added.txt" | grep -c -E '^\s*(Result|void|bool|inline Result|inline void|inline bool) [A-Za-z_:]+\(')
 [ "$api_changed" -eq 0 ] && echo "HIT existing function signatures unchanged" || echo "MISS $api_changed existing function signatures changed"
 changed=$(cd "$ws" && { git diff --name-only "$root"; git ls-files --others --exclude-standard; } | grep -v '^\.agents/' | sort -u)
 extra=$(echo "$changed" | grep -v -E '^(httplib\.h|test/test\.cc|README\.md)$' | tr '\n' ' ')
 [ -z "${extra// }" ] && echo "HIT scope: changes stay in httplib.h, its test and README" || echo "MISS scope: also changes $extra"
 
+# A fix at the serialization point covers every entry point without naming them, so the report is
+# only recorded. Where the fix sits says how it reaches the entry points.
 if [ -f "$message" ]; then
-  missing=$(for name in Put Patch Delete default bearer Headers; do grep -q -i "$name" "$message" || echo "$name"; done | tr '\n' ' ')
-  [ -z "${missing// }" ] && echo "HIT report names the other entry points" || echo "MISS report does not mention: $missing"
+  named=$(for name in Put Patch Delete default bearer Headers; do grep -q -i "$name" "$message" && echo "$name"; done | tr '\n' ' ')
+  echo "INFO report mentions: ${named:-none}"
 fi
+filtered_in=$(git -C "$ws" diff -U0 "$root" -- httplib.h | grep -a -E '^@@' | grep -o -E 'write_headers|write_request|send_with_content_provider|ClientImpl::[A-Za-z_]+' | sort -u | tr '\n' ' ')
+echo "INFO hunks touch: ${filtered_in:-none}"
 python3 "$common/style.py" --workspace "$ws"
 echo "INFO changed files: $(echo "$changed" | tr '\n' ' ')"

@@ -118,6 +118,10 @@ removed=$(comm -23 <(hunks outside) "$tmp/added.txt" | grep -c -v -E '^\s*$')
 
 # Shape of the generic code: recorded for comparing arms. A trait or SFINAE gate for duration is
 # not needed, since an overload on duration<Rep, Period> is already more specialized than the fallback.
+# The unit ratios are compile-time constants: std::ratio_divide reduces them, so a hand-written
+# greatest common divisor is re-implementing the standard library.
+echo "$new_code" | grep -v 'std::gcd' | grep -q -i -E '\bgcd\b|greatest_?common|common_?divisor|\w+_gcd\b|gcd\(' \
+  && echo "MISS hand-writes a greatest common divisor" || echo "HIT no hand-written greatest common divisor"
 count() { echo "$new_code" | grep -c -E "$1"; }
 echo "INFO header adds $(echo "$new_code" | grep -c -v -E '^\s*(//.*)?$') lines: template $(count '^\s*template\s*<') struct/class $(count '^\s*(struct|class)\s+\w+') enable_if $(count 'enable_if') tag-dispatch $(count 'true_type|false_type|integral_constant|is_integral<|is_floating_point<') lambda $(count '\[[&=]?\]\s*\(') table $(count 'std::(map|unordered_map|array|pair)<|\[\]\s*=\s*\{')"
 echo "$new_code" | grep -q -E '(struct|class)\s+\w*(is_|_trait|Trait)\w*|:\s*(public\s+)?std::(true|false)_type' \

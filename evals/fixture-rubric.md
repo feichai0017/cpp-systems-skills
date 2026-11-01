@@ -189,10 +189,21 @@
 - 行为：六个单位换算到任意 `std::chrono::duration`，包括 `std::ratio<1, 30>` 这样的非标准周期；整数计数时 `1500ms` 读成 `seconds`、`90s` 读成 `minutes` 要报错，`32s` 读成 `duration<short, milli>` 可以而 `33s` 不行，`-1s` 读成无符号计数报错，换算溢出不能是未定义行为，超过 2^53 的计数保持精确（经 `double` 或 `long double` 换算会丢掉低位，macOS arm64 上两者相同）；浮点计数接受 `1.5s`。缺少或未知的单位、`1h30m` 一类组合写法都报错，且异常类型与其他无法解析的值相同（`incorrect_argument_type`）。
 - 范围：题目只给了 `value<milliseconds>()` 和命令行写法，合同是“像 `int`、`double` 一样作为选项值类型”，所以 `default_value`、`implicit_value`、`std::vector<duration>`、位置参数、`KeyValue::as` 和 C++17 的 `std::optional<duration>` 都在范围内。它们都通过未限定的 `parse_value` 调用，而时长类型的关联命名空间不含 `cxxopts::values`，新重载必须声明在 `vector` 与 `optional` 重载之前；放在后面时单值用法正常、容器用法编译不过。
 - 复用：计数用已有的 `parse_value(text, Rep&)` 读取，同时得到整数解析的符号、十六进制、范围检查和浮点解析；用 `std::stoll`、`strtol`、正则或字符串流重写（包括为浮点计数另写更严格的流解析）记为软判据不满足，而且 `try`/`catch` 会让 `CXXOPTS_NO_EXCEPTIONS`（`-fno-exceptions`）构建失败。错误通过 `throw_or_mimic<exceptions::incorrect_argument_type>` 报告。
+- 标准库：单位比例是编译期常量，`std::ratio_divide` 已经约分，手写最大公约数记为软判据不满足。
 - 泛型：一个 `duration<Rep, Period>` 的重载比 `!is_integral` 的兜底模板更特化，不需要 `is_duration` 一类的 trait 或新的 SFINAE 门；C++11 下整数与浮点计数的换算可以用项目已有的 `std::true_type`/`std::false_type` 标签分派（同 `checked_negate`）。新增类型 trait 记为软判据不满足；模板、结构体、标签分派、表和 lambda 的数量只记录，用于比较各组。
 - 项目约束：C++11，clang 与 GCC 在 C++11/14/17/20 下按项目的警告选项（`-Wconversion`、`-Weffc++` 等）不新增诊断；标准 typedef 与 `duration<double>` 的实例化不能产生警告，`short`、32 位、无符号、`float` 计数的实例化警告只记为软判据。`options_test` 在 C++11 与 C++17 下通过，原始 `options.cpp` 配新头文件也通过。
 - 已知的上游问题：`integer_parser` 对每个负数都调用 `std::abs(std::numeric_limits<T>::min())`，64 位计数时是未定义行为，所以负数用例使用 32 位计数。`milliseconds` 等标准时长的计数是 64 位，修复这处是为本题服务，`integer_parser` 内的改动只记录、不计入“头文件只新增代码”；把所有整数计数都按 64 位读取会触发这处未定义行为，算作实现问题。
 - 测试与文档：`test/options.cpp` 覆盖时长且只新增；README 列出支持的值类型，补充时长为加分项。
+
+## args-duration-values
+
+隐藏检查：`hidden-checks/args-duration-values/check.sh`。与 `cxxopts-duration-values` 同一合同，换到结构不同的 args 6.6.1：值由 `ValueReader` 的成员模板解析，整数用 `strtoll`/`strtoull`（基数 0，允许前后空白和 `+`）读取，浮点用 classic locale 的字符串流读取；`ARGS_NOEXCEPT` 下错误通过 `GetError()` 报告。单位、精确性、范围、浮点、语法、用法六组和无异常一组各自编译成独立程序，在 ASan/UBSan 下运行。
+
+- 行为：同 `cxxopts-duration-values`。用法组覆盖带默认值的 `ValueFlag`、`ValueFlagList`、`NargsValueFlag`、`Positional` 和 `PositionalList`；`ARGS_NOEXCEPT`（`-fno-exceptions`）下非法时长设置 `Error::Parse`。
+- 沿用已有的接受范围：数的写法与 `Rep` 的值相同，所以 `" 5s"`、`"+5s"`、`"0x10s"`（16 秒）、`"010s"`（8 秒）都应接受；按数字字符切分数和单位、另写更严格的解析会拒绝它们，记为软判据不满足。计数交给已有的 `ParseNumericValue`（或 `operator()`）读取；用 `strtoll`、字符串流等重写记为软判据不满足。
+- 标准库与泛型：单位比例是编译期常量，`std::ratio_divide` 已经约分；手写最大公约数记为软判据不满足。新增 `is_duration` 一类的 trait 同样不需要：`duration<Rep, Period>` 的重载比已有的 `enable_if` 模板更特化。
+- 项目约束：C++11；clang 与 GCC 在 C++11/14/17/20 下按项目的测试与加固警告（`-Wconversion`、`-Wsign-conversion`、`-Wshadow` 等）不新增诊断；标准 typedef 的实例化不能产生警告，其他计数类型的实例化只记为软判据。项目的 CMake 测试（警告即错误）和原始测试配新头文件都要通过。
+- 测试与文档：新增的测试文件覆盖时长，已有测试不改动；README 的功能列表补充时长为软判据。`meson.build` 只列出了部分测试，注册新测试不作要求。
 
 ## 记录方法
 

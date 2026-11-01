@@ -93,6 +93,19 @@
 - cxxopts 的 `checked_negate` 本身带有 `checked` 前缀，用于观察修改后的命名规则是否只约束新名字。
 - `minini-number-defaults` 是封装层规则的来源，复测只说明规则在原案例上是否生效，不计为独立证据；对照沿用第五轮同一 Codex 版本的结果，另加入第六轮的技能版本（`--skills-rev a28f6a3`），区分封装层这句与复用、泛型规则的影响。
 
+## 第八轮：标准库复用、已有解析的接受范围与文档
+
+第七轮中 18 次 cxxopts 运行有 13 次手写最大公约数，而不在单位分派处用 `std::ratio_divide`；高强度下多数运行为浮点计数另写了更严格的解析，3 次改动了共用的 `stringstream_parser`；README 两轮共 36 次都没有更新；`minIni::geti` 的窄化只在 1/6 次被处理。`cpp-core` 据此补充了标准库复用、沿用已有解析的接受范围、同步文档和包装层窄化的规则，`generic-programming.md` 补充了“运行时只分派一次、换算交给编译期”的写法。
+
+| 案例 | 来源 | 任务 | 隐藏检查 |
+| --- | --- | --- | --- |
+| `args-duration-values` | args 6.6.1 | [新增](args-duration-values/TASK.md) `std::chrono::duration` 参数值 | 七组行为（含 `ARGS_NOEXCEPT`）在 ASan/UBSan 下分别编译；计数写法与 `Rep` 一致（空白、`+`、十六进制、八进制）；项目警告选项与 CMake 测试；复用、手写最大公约数、trait 与 README |
+| `cxxopts-duration-values` | cxxopts 3.3.1 | 第七轮的同一案例 | 同第七轮，另记录手写最大公约数 |
+| `minini-number-defaults` | minIni `1bb6557` | 第五轮的同一案例 | 同第五轮 |
+
+- `args-duration-values` 与第七轮是同一类任务、不同的代码结构，用于检验新规则能否迁移到新仓库；技能组与第七轮的技能版本（`--skills-rev 3f9cb1a`）和无技能组比较。
+- 后两个案例是新规则的来源，只运行新技能组，与之前各轮同一 Codex 版本的结果比较，不计为独立证据。
+
 ## 运行与记录
 
 `scripts/run_codex_eval.py` 为单个案例准备隔离工作区并运行 Codex：

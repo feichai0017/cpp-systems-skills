@@ -18,10 +18,25 @@ UNTESTED = (r"未(?:注入|测试|覆盖|验证|完成)|没有(?:注入|测试|�
             r"|not (?:tested|injected)|untested")
 
 
+def carry_headers(text: str) -> str:
+    """Prefixes list items with the line that introduces them ("替身测试覆盖：" then "- 重命名失败")."""
+    lines, header = [], ""
+    for line in text.splitlines():
+        if re.match(r"\s*(?:[-*]|\d+\.)\s", line):
+            lines.append(header + " " + line if header else line)
+            continue
+        if not line.strip():  # a blank line may separate the header from its list
+            lines.append(line)
+            continue
+        header = line.strip() if re.search(r"[：:]\s*$", line) else ""
+        lines.append(line)
+    return "\n".join(lines)
+
+
 def classify(text: str, paths: dict[str, tuple[str, str]], required: set[str],
              context: str | None = None) -> dict[str, str]:
     """Maps each required path, and each other path the report names, to its state."""
-    sentences = re.split(r"[\n。；;]", text)
+    sentences = re.split(r"[\n。；;]", carry_headers(text))
     concrete = context is None or re.search(context, text, re.I) is not None
     result = {}
     for name, (path, trigger) in paths.items():

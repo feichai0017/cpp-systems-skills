@@ -249,6 +249,8 @@
 - 复用：结果用 `sdsnewlen`、`sdsMakeRoomFor`、`sdscatlen` 等已有函数构造；直接调用 `s_malloc`/`s_realloc` 或改写 sds 头部记为软判据不满足。
 - 过度设计：`sdsreplace` 之外的新公开函数、非标准的 `memmem` 记为软判据不满足；`if` 与循环数量、行数只记录（参考答案 39 行，5 个 `if`、2 个循环）。
 - 项目约束：clang 与 GCC 在 `-std=c99 -pedantic -Wall -Wextra` 下（含与不含 `SDS_TEST_MAIN`）不新增诊断；`make && ./sds-test` 通过；`sds.h` 声明新函数；测试段新增 `test_cond` 且 `sds.c` 只新增代码；README 记录 `sdsreplace` 为软判据。
+- 测试钩子：`sds.h` 或 `sds.c` 测试段之前出现 `s_malloc` 等分配器宏的重定义，或 `_test_`、`fail_next`、`failpoint` 这类测试专用的名字，记为软判据不满足；在测试文件或临时目录里放自己的 `sdsalloc.h` 来注入失败，不算钩子。
+- 报告：最终消息要说明分配失败路径是否测试过，提到长度溢出时也要说明；同一句话里同时出现失败路径和测试状态（注入、模拟、测试、未测试等）才算说明，软判据。
 
 ## utf8proc-strwidth
 

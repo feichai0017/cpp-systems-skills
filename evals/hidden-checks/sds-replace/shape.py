@@ -80,6 +80,10 @@ def main() -> int:
     if re.search(r"\bmemmem\s*\(", code):
         extra.append("non-standard memmem")
     print("MISS extra machinery: " + ", ".join(extra) if extra else "HIT no extra machinery")
+    # Test seams in the library part of sds.c, even behind SDS_TEST_MAIN, are product code too.
+    hooks = re.search(r"#\s*(?:undef|define)\s+s_(?:malloc|realloc|free)\b|\b\w*_test_\w*|\b\w*Test[A-Z]\w*"
+                      r"|\bfail_(?:next|at|after)\w*|\bfailpoint\w*", code)
+    print("MISS adds a test hook to the library: " + hooks.group(0) if hooks else "HIT no test hooks in the library")
     return 0
 
 

@@ -48,6 +48,29 @@ std::size_t TotalSize(const Parts&... parts) {
 - 类型萃取用 `<type_traits>`；自定义 trait 时同时提供 `_v`/`_t` 别名（C++17/14）。
 - 表达式模板、类型列表、编译期状态机只在已引入的库无法满足、且有测量收益时才自己写。
 
+## 运行时选择与编译期参数
+
+运行时才知道的选择（单位、格式、类型标签）只在一处分派：每个分支用编译期参数调用同一个模板，模板内部的比例、约分和范围都是编译期常量，由 `std::ratio_divide`、`std::numeric_limits` 等标准设施给出。不要把编译期已知的分子分母读成运行时变量，再手写最大公约数、约分和溢出判断。
+
+```cpp
+// 分支只决定单位；比例在编译期约分，范围来自 numeric_limits。
+// <ratio> 从 C++11 起可用，旧标准下把 optional 换成项目的错误方式。
+template <typename From, typename To>
+std::optional<long long> Rescale(long long count) {
+  using R = std::ratio_divide<From, To>;  // R::num / R::den 已约分
+  if (count % R::den != 0) return std::nullopt;  // 结果不是整数
+  const long long q = count / R::den;
+  if (q > std::numeric_limits<long long>::max() / R::num ||
+      q < std::numeric_limits<long long>::min() / R::num) return std::nullopt;
+  return q * R::num;
+}
+
+switch (unit) {
+  case Unit::kKilo: return Rescale<std::kilo, std::milli>(count);
+  case Unit::kUnit: return Rescale<std::ratio<1>, std::milli>(count);
+}
+```
+
 ## 头文件、编译时间与 ABI
 
 - 模板定义放在头文件；实现细节放 `detail` 命名空间或 `-inl.h` 文件，见 [项目结构与文件摆放](project-layout.md)。
@@ -67,6 +90,7 @@ std::size_t TotalSize(const Parts&... parts) {
 | 只包装一个类型的类型擦除 | 直接使用该类型 |
 | 手写类型列表和元函数 | 已引入的 `boost::mp11`，或直接用 `std::variant`/`std::tuple` |
 | 为了零开销把所有接口都写成模板 | 只在热路径上测得收益的地方用模板，其余用普通函数 |
+| 运行时读出编译期已知的比例，再手写最大公约数、约分和溢出判断 | 在分派处把单位作为模板参数，比例交给 `std::ratio_divide`，范围用 `std::numeric_limits` |
 
 ## 验证
 

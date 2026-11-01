@@ -104,6 +104,10 @@ int main()
   accepts<duration<unsigned, std::milli>>("4s", 4000);
   rejects<nanoseconds>("9223372036854775807h");
   rejects<duration<std::int32_t>>("99999999999s");
+  // Counts above 2^53 must stay exact: converting through double or long double (64 bits on
+  // some targets) loses the low bits.
+  accepts<nanoseconds>("9007199254740993ns", 9007199254740993LL);
+  accepts<nanoseconds>("9007199254740993us", 9007199254740993000LL);
   report("range");
 #elif defined(FAMILY_floating)
   {

@@ -96,8 +96,8 @@ git -C "$ws" diff -U0 "$root" -- test/options.cpp | grep -a -q '^-[^-]' \
 git -C "$ws" diff -U0 "$root" -- include/cxxopts.hpp | grep -a '^-[^-]' | cut -c2- | sort >"$tmp/removed.txt"
 git -C "$ws" diff -U0 "$root" -- include/cxxopts.hpp | grep -a '^+[^+]' | cut -c2- | sort >"$tmp/added.txt"
 new_code=$(comm -13 "$tmp/removed.txt" "$tmp/added.txt")
-if echo "$new_code" | grep -q -E 'std::sto(i|l|ll|ul|ull|f|d|ld)\b|\bstrto(l|ll|ul|ull|d|f|ld|imax|umax)\b|from_chars|std::regex|regex_match|sscanf|stringstream'; then
-  echo "MISS count parsing re-implemented: $(echo "$new_code" | grep -m1 -o -E 'std::sto[a-z]*|strto[a-z]*|from_chars|std::regex|regex_match|sscanf|[a-z]*stringstream')"
+if echo "$new_code" | grep -q -E 'std::sto(i|l|ll|ul|ull|f|d|ld)\b|\bstrto(l|ll|ul|ull|d|f|ld|imax|umax)\b|from_chars|std::regex|regex_match|sscanf|\b(i|o)?stringstream\b'; then
+  echo "MISS count parsing re-implemented: $(echo "$new_code" | grep -m1 -o -E 'std::sto[a-z]*|strto[a-z]*|from_chars|std::regex|regex_match|sscanf|\b(i|o)?stringstream\b')"
 elif echo "$new_code" | grep -v -E 'const std::string ?& ?\w+, ?std::chrono' | grep -q -E '\b(parse_value|integer_parser|stringstream_parser)\('; then
   echo "HIT count parsed by the existing parse_value for Rep"
 else
@@ -106,8 +106,15 @@ fi
 echo "$new_code" | grep -q 'throw_or_mimic<exceptions::incorrect_argument_type>' \
   && echo "HIT errors reported through throw_or_mimic<incorrect_argument_type>" \
   || echo "INFO no new throw_or_mimic<incorrect_argument_type> call"
-removed=$(comm -23 "$tmp/removed.txt" "$tmp/added.txt" | grep -c -v -E '^\s*$')
+# integer_parser takes std::abs of the minimum, which is undefined for 64-bit counts such as
+# milliseconds; fixing it serves the task, so its hunks are recorded instead of graded.
+hunks() {  # hunks <outside|inside>: removed lines outside or inside integer_parser
+  git -C "$ws" diff -U0 "$root" -- include/cxxopts.hpp | awk -v want="$1" \
+    '/^@@/ { inside = /integer_parser\(/ } /^-[^-]/ && ((want == "inside") == inside) { print substr($0, 2) }' | sort
+}
+removed=$(comm -23 <(hunks outside) "$tmp/added.txt" | grep -c -v -E '^\s*$')
 [ "$removed" -eq 0 ] && echo "HIT header changes only add code" || echo "MISS header changes $removed existing lines"
+[ -n "$(hunks inside)" ] && echo "INFO integer_parser changed (its std::abs of the minimum is undefined for 64-bit counts)"
 
 # Shape of the generic code: recorded for comparing arms. A trait or SFINAE gate for duration is
 # not needed, since an overload on duration<Rep, Period> is already more specialized than the fallback.

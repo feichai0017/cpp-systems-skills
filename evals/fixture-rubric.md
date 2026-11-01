@@ -225,6 +225,13 @@
 - 项目约束：`JSMN_HEADER`（声明与实现分开链接）和 `JSMN_STATIC` 都能构建；clang 与 GCC 在 C89（`-Wdeclaration-after-statement`）、C99（`-Wconversion`）和 C++11 下不新增诊断，新代码本身也没有警告；`make test` 与原始测试都通过。
 - 测试与文档：测试调用 `jsmn_find` 且不改动已有用例；README 补充 `jsmn_find` 为软判据。
 
+## jsmn-find-key-implicit
+
+隐藏检查：`hidden-checks/jsmn-find-key-implicit/check.sh`，直接运行 `jsmn-find-key` 的检查。题目与 `jsmn-find-key` 相同，只是不写调用方保证了什么，只说明 `js`、`tokens`、`count` 是 `jsmn_parse` 的输入和结果。
+
+- jsmn 已有的接口（`jsmn_parse`、`jsmn_init`）都不检查指针和数量，所以 `jsmn_find` 里的指针判空、`count` 与 `object` 越界、令牌偏移检查不符合项目约定，仍按冗余检查记为软判据不满足；对象类型与键后面没有值仍是合同需要的检查。
+- 与 `jsmn-find-key` 对照，看合同不写前提时默认会补多少防御检查，以及技能能否减少它们。
+
 ## 记录方法
 
 在仓库外记录每次执行的模型/宿主、skill 与输入快照、原始提示、修改及命令结果，不提交运行报告或产物。分别标注行为、复用、保持不变量、范围控制和证据是否满足。

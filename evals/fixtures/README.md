@@ -125,9 +125,11 @@
 | 案例 | 来源 | 任务 | 隐藏检查 |
 | --- | --- | --- | --- |
 | `jsmn-find-key` | jsmn `25647e6` | [新增](jsmn-find-key/TASK.md) `jsmn_find` | 29 个用例 × 四种配置与 C++，令牌数组恰好 `count` 个；按合同分类的冗余检查；分配、第二条路径与额外接口；`JSMN_HEADER`/`JSMN_STATIC`；C89、C99、C++11 下 clang 与 GCC 的诊断 |
+| `jsmn-find-key-implicit` | jsmn `25647e6` | [同一题](jsmn-find-key-implicit/TASK.md)，不写调用方保证 | 同 `jsmn-find-key`；判空与越界检查不符合项目约定 |
 
 - 题目写明调用方保证 `js`、`tokens` 来自同一次成功解析，`count` 是返回值，`0 <= object < count`，`key` 以 NUL 结尾；对这些条件的检查都算冗余。键后面没有值是 jsmn 实际会产生的情况，对它的检查是合同需要的。
 - 技能组与无技能组在 high 和 low 下各运行 5 次。
+- `jsmn-find-key-implicit` 是同一题去掉“调用方保证”一段的变体，检查相同，用于观察合同不写前提时的默认防御检查。
 
 ## 运行与记录
 

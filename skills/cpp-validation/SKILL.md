@@ -10,7 +10,7 @@ description: "C++ 构建或测试失败、验证方案、sanitizer、静态分�
 ## 找到真实构建入口
 
 - 查阅适用的 `AGENTS.md`、CI、构建脚本、presets、相关 target 与测试标签。不要假定 CMake，也不要凭空发明 target。
-- 确认编译器版本、C++ 标准、关键宏、链接方式、Debug/Release、异常策略与目标架构；共享库/ABI 改动要覆盖相关消费者。
+- 确认编译器版本、C++ 标准、关键宏、链接方式、Debug/Release、异常策略与目标架构；共享库/ABI 改动要覆盖相关消费者。项目支持多个编译器时，头文件和模板改动至少用其中两种编译（例如本机默认是 Clang 时再用 GCC），找不到第二种编译器时在报告中标为未执行。
 - 有 `compile_commands.json` 时确认它对应当前源码与配置。静态分析解析错误先解决真实 include、宏与生成文件，不批量屏蔽。
 - 保留既有 `.clang-format` / `.clang-tidy` 和命名约定；不默认写入 `Checks: '*'` 或全局 `WarningsAsErrors: '*'`。
 

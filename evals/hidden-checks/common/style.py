@@ -47,7 +47,8 @@ def main() -> int:
     added, functions, names, guards, conditions = 0, [], set(), 0, []
     for chunk in re.split(r"^diff --git ", diff, flags=re.M)[1:]:
         path = chunk.split("\n", 1)[0].split(" b/")[-1]
-        if re.search(r"test", path, re.I) or not re.search(r"\.(c|cc|cpp|cxx|h|hh|hpp|hxx)$", path):
+        # Build directories left in the workspace (build-gcc/, cmake-build-*/) hold generated files.
+        if re.search(r"test|(^|/)(cmake-)?build[^/]*/", path, re.I) or not re.search(r"\.(c|cc|cpp|cxx|h|hh|hpp|hxx)$", path):
             continue
         removed = "\n".join(l[1:] for l in chunk.splitlines() if l.startswith("-") and not l.startswith("---"))
         for line in (l[1:] for l in chunk.splitlines() if l.startswith("+") and not l.startswith("+++")):

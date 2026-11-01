@@ -130,7 +130,9 @@ echo "$new_code" | python3 "$common/duration_shape.py"
 echo "$new_code" | grep -q -E 'static Node encode\(' && echo "INFO also adds encode (writing was not requested)"
 
 changed=$(cd "$ws" && { git diff --name-only "$root"; git ls-files --others --exclude-standard; } | grep -v '^\.agents/' | sort -u)
-extra=$(echo "$changed" | grep -v -E '^(include/|src/|test/|docs/|README\.md$|BUILD\.bazel$)' | tr '\n' ' ')
+builds=$(echo "$changed" | grep -o -E '^(cmake-)?build[^/]*/' | sort -u | tr '\n' ' ')
+[ -n "${builds// }" ] && echo "INFO leaves build output in $builds"
+extra=$(echo "$changed" | grep -v -E '^(include/|src/|test/|docs/|README\.md$|BUILD\.bazel$|(cmake-)?build[^/]*/)' | tr '\n' ' ')
 [ -z "${extra// }" ] && echo "HIT scope: changes stay in the library, tests and documentation" || echo "MISS scope: also changes $extra"
 git -C "$ws" diff -U0 "$root" -- docs README.md | grep -a '^+[^+]' | grep -q -i -E 'chrono|duration' \
   && echo "HIT documentation lists duration conversions" || echo "MISS documentation does not list duration conversions"

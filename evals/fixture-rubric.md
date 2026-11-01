@@ -205,6 +205,16 @@
 - 项目约束：C++11；clang 与 GCC 在 C++11/14/17/20 下按项目的测试与加固警告（`-Wconversion`、`-Wsign-conversion`、`-Wshadow` 等）不新增诊断；标准 typedef 的实例化不能产生警告，其他计数类型的实例化只记为软判据。项目的 CMake 测试（警告即错误）和原始测试配新头文件都要通过。
 - 测试与文档：新增的测试文件覆盖时长，已有测试不改动；README 的功能列表补充时长为软判据。`meson.build` 只列出了部分测试，注册新测试不作要求。
 
+## yaml-duration-values
+
+隐藏检查：`hidden-checks/yaml-duration-values/check.sh`。同一时长合同，换到 yaml-cpp 0.9.0 的 `YAML::convert<T>` 特化：只要求读取（`as<T>()`）。工作区的库带 ASan/UBSan 构建一次，单位、精确性、范围、浮点、语法、用法与计数写法七组探针各自编译并链接它。
+
+- 行为：同前两个时长案例；用法组覆盖 `Load` 后的 `as<T>()`、`std::vector`、`std::map`、`as<T>(fallback)` 对不精确值和缺失键返回默认值，以及非标量节点上 `decode` 返回 false、`as` 抛出 `BadConversion`。
+- 沿用已有的接受范围：计数由 `convert<Rep>::decode`（或 `Node::as<Rep>`）读取，所以 `"+5s"`、`"0x10s"`（16 秒）、`"010s"`（8 秒）接受，无符号计数的 `"-0s"` 拒绝；用字符串流、`strtoll` 等重写记为软判据不满足。
+- 标准库与泛型：同前；手写最大公约数、新增 trait 记为软判据不满足。题目说明不需要写出，额外的 `encode` 只记录。
+- 多编译器：CI 用 GCC、Clang 和 MSVC 构建，C++11/17/20 下 clang 与 GCC 的头文件诊断不新增；各族在 GCC 下也要能编译（只做语法检查，libc++ 与 libstdc++ 的库不能混合链接），标准 typedef 与用法族的实例化不产生项目警告，其他计数类型和 `-Wconversion` 只记录。报告是否提到 GCC 只记录。
+- 测试与文档：`yaml-cpp-tests` 通过，原始测试配新库也通过；测试覆盖时长且不改动已有断言；`docs/Tutorial.md` 列出内置转换的一句补充时长为软判据。
+
 ## 记录方法
 
 在仓库外记录每次执行的模型/宿主、skill 与输入快照、原始提示、修改及命令结果，不提交运行报告或产物。分别标注行为、复用、保持不变量、范围控制和证据是否满足。

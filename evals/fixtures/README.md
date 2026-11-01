@@ -106,6 +106,18 @@
 - `args-duration-values` 与第七轮是同一类任务、不同的代码结构，用于检验新规则能否迁移到新仓库；技能组与第七轮的技能版本（`--skills-rev 3f9cb1a`）和无技能组比较。
 - 后两个案例是新规则的来源，只运行新技能组，与之前各轮同一 Codex 版本的结果比较，不计为独立证据。
 
+## 第九轮：标准库的限制、多编译器与隔离运行
+
+第八轮中至少 5 次高强度运行先用了 `std::ratio_divide`，又因“极端自定义周期会在编译期溢出”改成运行时约分和手写最大公约数；`generic-programming.md` 在低强度下 0/6 次被读取；一次运行的头文件 GCC 编译不过。`cpp-core` 据此在正文写明“运行时只分派一次”，并把标准库设施自身的限制视为可接受的边界；交付检查要求至少用两种编译器编译。运行脚本从本轮起给每次运行临时的 `HOME` 和 `CODEX_HOME`，用户的记忆、个人技能和配置不再进入任何一组。
+
+| 案例 | 来源 | 任务 | 隐藏检查 |
+| --- | --- | --- | --- |
+| `yaml-duration-values` | yaml-cpp 0.9.0 | [新增](yaml-duration-values/TASK.md) 从节点读取 `std::chrono::duration` | 七组行为链接 ASan/UBSan 构建的库；计数写法与 `convert<Rep>` 一致；clang 与 GCC 的头文件诊断和实例化；项目测试；复用、手写最大公约数、trait 与 `docs/Tutorial.md` |
+| `args-duration-values` | args 6.6.1 | 第八轮的同一案例 | 同第八轮 |
+
+- `yaml-duration-values` 的技能组与第八轮的技能版本（`--skills-rev 4969905`）和无技能组比较。
+- `args-duration-values` 是新规则的来源，只运行新技能组和无技能组；与第八轮比较时注意第八轮没有隔离运行环境。
+
 ## 运行与记录
 
 `scripts/run_codex_eval.py` 为单个案例准备隔离工作区并运行 Codex：
@@ -115,6 +127,7 @@ python3 scripts/run_codex_eval.py durable-config --arm skills --trial 1 \
   --out /tmp/cpp-skill-evals --effort high --cxx /opt/homebrew/opt/llvm/bin/clang++ --grade
 ```
 
+- 每次运行使用临时的 `HOME` 和 `CODEX_HOME`，只复制登录信息和模型设置；`--shared-home` 改用用户自己的目录（第八轮及以前都是这样运行的）。
 - `--arm skills` 把技能（默认全部）复制到工作区的 `.agents/skills`，并写入 `.git/info/exclude`，不进入评审的 diff；`--arm control` 不安装技能。`--skills-rev <提交>` 安装该提交中的技能，运行目录名记为 `skills@<提交>`。
 - 输出目录必须在仓库外。每次运行保存事件日志、最终回复、diff、`run.json`（Codex 版本、技能提交、读取过的技能文件等）和可选的 `grade.txt`。
 - 需要判断技能带来的提升时，同一模型、同一设置下有无技能各运行多次，按次数报告每项判据的满足情况；少量运行只说明观察到的差异，不写成统计结论。

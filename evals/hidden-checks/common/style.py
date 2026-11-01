@@ -41,6 +41,7 @@ def main() -> int:
     parser.add_argument("--workspace", required=True)
     parser.add_argument("--strip-prefix", default="", help="regex of the project's symbol prefix, removed before naming checks")
     parser.add_argument("--long", type=int, default=24, help="names at least this long are listed")
+    parser.add_argument("--tests", default=r"$^", help="regex of further test paths, such as a test driver without test in its name")
     args = parser.parse_args()
 
     root = git(args.workspace, "rev-list", "--max-parents=0", "HEAD").split()[0]
@@ -50,7 +51,8 @@ def main() -> int:
     for chunk in re.split(r"^diff --git ", diff, flags=re.M)[1:]:
         path = chunk.split("\n", 1)[0].split(" b/")[-1]
         # Build directories left in the workspace (build-gcc/, cmake-build-*/) hold generated files.
-        if re.search(r"test|(^|/)(cmake-)?build[^/]*/", path, re.I) or not re.search(r"\.(c|cc|cpp|cxx|h|hh|hpp|hxx)$", path):
+        if re.search(r"test|(^|/)(cmake-)?build[^/]*/", path, re.I) or re.search(args.tests, path) \
+                or not re.search(r"\.(c|cc|cpp|cxx|h|hh|hpp|hxx)$", path):
             continue
         removed = "\n".join(l[1:] for l in chunk.splitlines() if l.startswith("-") and not l.startswith("---"))
         for line in (l[1:] for l in chunk.splitlines() if l.startswith("+") and not l.startswith("+++")):

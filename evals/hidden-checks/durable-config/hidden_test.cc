@@ -2,6 +2,7 @@
 #include "config_store.hpp"
 #include "posix_fs.hpp"
 
+#include <algorithm>
 #include <cstdio>
 #include <filesystem>
 #include <map>
@@ -21,6 +22,9 @@ class RecordingFileSystem final : public project::fs::FileSystem {
 public:
     int fail_sync_of_file = 0;   // 1 = fail the first Sync on a regular file
     bool fail_write_enospc = false;
+    bool fail_rename = false;
+    bool fail_directory_sync = false;
+    bool keep_removed_files = false;  // Remove succeeds without unlinking, as when a crash skips cleanup
 
     project::fs::OpenResult Open(const std::string& path, project::fs::OpenMode mode) override {
         ops.push_back({"open", path, mode, ""});
@@ -42,6 +46,7 @@ public:
         const bool directory = fd_mode_[fd] == project::fs::OpenMode::kDirectory;
         ops.push_back({directory ? "sync-dir" : "sync-file", fd_path_[fd], fd_mode_[fd], ""});
         if (!directory && fail_sync_of_file > 0 && --fail_sync_of_file == 0) return std::make_error_code(std::errc::io_error);
+        if (directory && fail_directory_sync) return std::make_error_code(std::errc::io_error);
         return real_.Sync(fd);
     }
     std::error_code Close(int fd) override {
@@ -51,10 +56,12 @@ public:
     }
     std::error_code Rename(const std::string& from, const std::string& to) override {
         ops.push_back({"rename", from, project::fs::OpenMode::kRead, to});
+        if (fail_rename) return std::make_error_code(std::errc::cross_device_link);
         return real_.Rename(from, to);
     }
     std::error_code Remove(const std::string& path) override {
         ops.push_back({"remove", path, project::fs::OpenMode::kRead, ""});
+        if (keep_removed_files) return {};
         return real_.Remove(path);
     }
 
@@ -73,6 +80,9 @@ void Expect(bool ok, const char* what) {
     std::printf("%s %s\n", ok ? "PASS" : "FAIL", what);
     if (!ok) ++failures;
 }
+
+// Soft criteria: reported, not counted as failures.
+void Prefer(bool ok, const char* what) { std::printf("%s %s\n", ok ? "HIT" : "MISS", what); }
 
 std::string Read(const std::string& path) {
     project::fs::PosixFileSystem fs;
@@ -119,7 +129,9 @@ int main() {
         Expect(write_at >= 0 && sync_at > write_at && sync_at < rename_at, "temporary file is synced after writing and before rename");
         int dir_sync_at = -1;
         for (int i = rename_at + 1; i < static_cast<int>(ops.size()); ++i) {
-            if (ops[i].kind == "sync-dir" && stdfs::path(ops[i].path) == dir) dir_sync_at = i;
+            std::error_code same_error;
+            // "dir", "dir/" and "dir/." all name the target directory.
+            if (ops[i].kind == "sync-dir" && stdfs::equivalent(ops[i].path, dir, same_error)) dir_sync_at = i;
         }
         Expect(dir_sync_at > rename_at, "directory is synced after rename");
     }
@@ -131,6 +143,11 @@ int main() {
     const std::error_code sync_error = project::SaveConfig(failing_sync, target, "broken=3\n");
     Expect(static_cast<bool>(sync_error), "sync failure is reported");
     Expect(Read(target) == "new=2\n", "target unchanged after sync failure");
+    // After a failed fsync the kernel may have dropped the dirty pages; a second fsync can succeed
+    // without the data reaching the disk.
+    const auto file_syncs = std::count_if(failing_sync.ops.begin(), failing_sync.ops.end(),
+                                          [](const Op& op) { return op.kind == "sync-file"; });
+    Prefer(file_syncs == 1, "a failed Sync is not retried");
 
     // 3. ENOSPC during write.
     RecordingFileSystem full_disk;
@@ -140,11 +157,36 @@ int main() {
     Expect(Read(target) == "new=2\n", "target unchanged after write failure");
     Expect(full_disk.closes == full_disk.opens, "fds closed on the failure path");
 
+    // 4. Rename failure.
+    RecordingFileSystem failing_rename;
+    failing_rename.fail_rename = true;
+    const std::error_code rename_error = project::SaveConfig(failing_rename, target, "moved=5\n");
+    Expect(rename_error == std::errc::cross_device_link, "rename failure is reported as is");
+    Expect(Read(target) == "new=2\n", "target unchanged after rename failure");
+    Expect(failing_rename.closes == failing_rename.opens, "fds closed after rename failure");
+
     int leftovers = 0;
     for (const auto& entry : stdfs::directory_iterator(dir)) {
         if (entry.path() != stdfs::path(target)) ++leftovers;
     }
     Expect(leftovers == 0, "no temporary files are left behind after failures");
+
+    // 5. Directory sync failure: the new content is in place but may not survive a power loss.
+    RecordingFileSystem failing_directory;
+    failing_directory.fail_directory_sync = true;
+    const std::error_code directory_error = project::SaveConfig(failing_directory, target, "dir=6\n");
+    Prefer(static_cast<bool>(directory_error), "directory sync failure is reported");
+    Expect(failing_directory.closes == failing_directory.opens, "fds closed after directory sync failure");
+
+    // 6. A crash between creating and removing the temporary file leaves it behind; the next save
+    // must still succeed.
+    RecordingFileSystem crashed;
+    crashed.fail_sync_of_file = 1;
+    crashed.keep_removed_files = true;
+    (void)project::SaveConfig(crashed, target, "lost=7\n");
+    project::fs::PosixFileSystem posix;
+    const std::error_code after_crash = project::SaveConfig(posix, target, "after=8\n");
+    Expect(!after_crash && Read(target) == "after=8\n", "save succeeds after a crash left a temporary file");
 
     stdfs::remove_all(dir);
     std::printf(failures == 0 ? "hidden durability: PASS\n" : "hidden durability: %d failure(s)\n", failures);

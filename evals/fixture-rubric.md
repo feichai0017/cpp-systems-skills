@@ -59,12 +59,15 @@
 
 ## durable-config
 
-隐藏检查：`hidden-checks/durable-config/check.sh`（替换为记录调用的 `FileSystem` 并注入故障）。
+隐藏检查：`hidden-checks/durable-config/check.sh`（替换为记录调用的 `FileSystem` 并注入故障，在 ASan/UBSan 下运行）。
 
 - 原子性：不以写模式打开目标文件；新内容写入同目录的临时文件，写完后 `Sync`，再 `Rename` 到目标；`Rename` 之后打开目录并 `Sync`。
-- 失败路径：临时文件 `Sync` 失败、写入时 `ENOSPC` 都返回错误，目标文件保持旧内容，临时文件被删除，所有 fd 都已关闭。
-- 复用与约定：只通过 `project::fs::FileSystem` 访问文件，不改接口，不改用 `std::ofstream` 或直接系统调用；保持函数签名与 `std::error_code` 约定。
-- 加分：说明 `Sync` 失败后不重试；启动时清理遗留的临时文件或说明这一需求。
+- 失败路径：临时文件 `Sync` 失败、写入时 `ENOSPC`、`Rename` 返回 `EXDEV` 都原样返回错误，目标文件保持旧内容，临时文件被删除，所有 fd 都已关闭；崩溃留下临时文件后，下一次保存仍然成功。目录 `Sync` 失败时返回错误、`Sync` 失败后不重试为软判据。
+- 复用与约定：只通过 `project::fs::FileSystem` 访问文件，不改接口，不改用 `std::ofstream` 或直接系统调用；保持函数签名与 `std::error_code` 约定；clang 与 GCC 下按 AGENTS.md 的命令编译运行 `check.cc`，原来的 `check.cc` 配新的 `config_store.hpp` 也要通过。
+- 冗余检查与过度设计（软判据）：错误已经说明打开失败，再判断 `fd` 的值；为空文本或空路径特判；同一事实写两个条件（如 `!e || e != errc::file_exists`）。调用方只有 `config_store.hpp` 和 `check.cc`，一次保存一个文件，固定临时文件名配合 `kWriteTruncate` 已能覆盖崩溃留下的旧文件，所以计数器、pid、随机数或时钟生成的唯一文件名、查找可用文件名的循环和重试循环都记为过度设计。行数、`if`、`Remove` 次数和辅助函数只记录（参考答案 15 行，4 个 `if`、1 次 `Remove`）。
+- 测试与钩子（软判据）：测试在测试代码里实现 `FileSystem` 替身来注入失败；`posix_fs.hpp` 不改，`config_store.hpp` 不加测试宏、`std::function` 注入点或失败开关；`check.cc` 只新增代码。
+- 报告（软判据）：写入、临时文件 `Sync`、`Rename`、目录 `Sync` 四条失败路径逐条说明是否测试过（`Open`、`Close` 在报告提到时计入）；测过的要点名替身，并写出让哪一步返回什么错误（“`Write` 返回 `ENOSPC`”“让 `Rename` 失败”），只写“故障注入测试通过”或只描述失败时的行为都不算。
+- 加分：`SaveConfig` 的注释说明新的保证；说明 `Sync` 失败后不重试；启动时清理遗留的临时文件或说明这一需求。
 
 ## coro-lifetime
 

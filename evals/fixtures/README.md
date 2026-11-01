@@ -118,6 +118,17 @@
 - `yaml-duration-values` 的技能组与第八轮的技能版本（`--skills-rev 4969905`）和无技能组比较。
 - `args-duration-values` 是新规则的来源，只运行新技能组和无技能组；与第八轮比较时注意第八轮没有隔离运行环境。
 
+## 第十轮：冗余检查
+
+第九轮起改用 `gpt-6-astra`。几道时长题都很少诱发冗余检查，两组没有差别；这一轮单独用一个合同写明前提的题目检验冗余检查。
+
+| 案例 | 来源 | 任务 | 隐藏检查 |
+| --- | --- | --- | --- |
+| `jsmn-find-key` | jsmn `25647e6` | [新增](jsmn-find-key/TASK.md) `jsmn_find` | 29 个用例 × 四种配置与 C++，令牌数组恰好 `count` 个；按合同分类的冗余检查；分配、第二条路径与额外接口；`JSMN_HEADER`/`JSMN_STATIC`；C89、C99、C++11 下 clang 与 GCC 的诊断 |
+
+- 题目写明调用方保证 `js`、`tokens` 来自同一次成功解析，`count` 是返回值，`0 <= object < count`，`key` 以 NUL 结尾；对这些条件的检查都算冗余。键后面没有值是 jsmn 实际会产生的情况，对它的检查是合同需要的。
+- 技能组与无技能组在 high 和 low 下各运行 5 次。
+
 ## 运行与记录
 
 `scripts/run_codex_eval.py` 为单个案例准备隔离工作区并运行 Codex：

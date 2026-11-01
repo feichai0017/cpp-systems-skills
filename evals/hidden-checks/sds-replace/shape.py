@@ -64,7 +64,7 @@ def main() -> int:
     # fromlen > len guards a loop bounded by len - fromlen, which would wrap without it.
     if re.search(LONGER, code):
         print("INFO returns early when the pattern is longer than s")
-    print(f"INFO sdsreplace adds {len(lines)} lines (reference: 31)")
+    print(f"INFO sdsreplace adds {len(lines)} lines (reference: 26)")
     print(f"INFO if statements {len(re.findall(r'\bif\s*\(', code))}, loops "
           f"{len(re.findall(r'\b(?:for|while)\s*\(', code))} (reference: 5 and 2)")
 

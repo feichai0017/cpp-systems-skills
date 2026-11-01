@@ -232,6 +232,15 @@
 - jsmn 已有的接口（`jsmn_parse`、`jsmn_init`）都不检查指针和数量，所以 `jsmn_find` 里的指针判空、`count` 与 `object` 越界、令牌偏移检查不符合项目约定，仍按冗余检查记为软判据不满足；对象类型与键后面没有值仍是合同需要的检查。
 - 与 `jsmn-find-key` 对照，看合同不写前提时默认会补多少防御检查，以及技能能否减少它们。
 
+## dconv-hex-output
+
+隐藏检查：`hidden-checks/dconv-hex-output/check.sh`。探针链接按 ASan/UBSan 构建的工作区源码：两万个随机规范数与 C 库的 `%a` 输出比较（两者在规范数上一致），次正规数、零、负零、`UNIQUE_ZERO`、无穷、NaN、没有符号时返回 false 且不写入，以及十进制转换的标志和指数字符不影响输出，由探针自行给出期望。
+
+- 冗余检查（本题重点）：题目不写任何前提。double-conversion 的公开方法从不检查 `StringBuilder*`，`StringBuilder` 自己断言容量，`Double` 的字段保证了指数和十六进制位的范围。对这些的检查、以及特殊值判断不止一次（`IsSpecial` 加上 `IsNan`、`std::isnan` 等），记为软判据不满足。
+- 复用：特殊值经 `HandleSpecialValues` 输出，位通过 `Double` 读取；直接使用 `infinity_symbol_`/`nan_symbol_` 或用 `memcpy`、联合体读位记为软判据不满足。
+- 过度设计：借用 `printf` 或字符串流格式化、模板、`ToHexadecimal` 之外的新公开方法，记为软判据不满足；行数只记录（参考答案 42 行，6 个 `if`、3 个循环）。
+- 项目约束：库源码在 clang 与 GCC 的 `-std=c++98 -pedantic -Wall -Wextra` 和 C++11 的 `-Wshadow -Wconversion` 下不新增诊断；ctest 与原始测试都通过；头文件为新方法写说明注释（软判据）。仓库根目录有 Bazel 的 `BUILD` 文件，在不区分大小写的文件系统上与 `build/` 冲突，所以 AGENTS.md 使用 `cmake-build/`。
+
 ## 记录方法
 
 在仓库外记录每次执行的模型/宿主、skill 与输入快照、原始提示、修改及命令结果，不提交运行报告或产物。分别标注行为、复用、保持不变量、范围控制和证据是否满足。

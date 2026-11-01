@@ -131,6 +131,17 @@
 - 技能组与无技能组在 high 和 low 下各运行 5 次。
 - `jsmn-find-key-implicit` 是同一题去掉“调用方保证”一段的变体，检查相同，用于观察合同不写前提时的默认防御检查。
 
+## 第十三轮：冗余检查规则的迁移
+
+第十二轮在两道 jsmn 题上加入“同一事实只判断一次”和“沿用项目的信任边界”后，冗余检查明显减少，但规则正是从这两道题总结出来的。这一轮换成结构不同的 C++ 项目验证迁移。
+
+| 案例 | 来源 | 任务 | 隐藏检查 |
+| --- | --- | --- | --- |
+| `dconv-hex-output` | double-conversion 3.4.0 | [新增](dconv-hex-output/TASK.md) `DoubleToStringConverter::ToHexadecimal` | 两万个随机规范数对照 `%a`；次正规数、零与特殊值；按项目约定分类的冗余检查；复用 `HandleSpecialValues` 与 `Double`；C++98 与 C++11 下 clang 和 GCC 的诊断 |
+
+- 题目不写前提；项目已有方法不检查指针、`StringBuilder` 自己断言容量，这些检查都算冗余。
+- 技能组（`e597577`）与无技能组在 high 和 low 下各运行 5 次。
+
 ## 运行与记录
 
 `scripts/run_codex_eval.py` 为单个案例准备隔离工作区并运行 Codex：

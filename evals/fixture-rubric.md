@@ -250,6 +250,15 @@
 - 过度设计：`sdsreplace` 之外的新公开函数、非标准的 `memmem` 记为软判据不满足；`if` 与循环数量、行数只记录（参考答案 39 行，5 个 `if`、2 个循环）。
 - 项目约束：clang 与 GCC 在 `-std=c99 -pedantic -Wall -Wextra` 下（含与不含 `SDS_TEST_MAIN`）不新增诊断；`make && ./sds-test` 通过；`sds.h` 声明新函数；测试段新增 `test_cond` 且 `sds.c` 只新增代码；README 记录 `sdsreplace` 为软判据。
 
+## utf8proc-strwidth
+
+隐藏检查：`hidden-checks/utf8proc-strwidth/check.sh`。探针在 ASan/UBSan 下运行：显式长度的用例放进恰好那么长、后面没有 NUL 的缓冲区；11 个结果用例、8 个无效 UTF-8 用例（截断、0xff、过长编码、代理项、孤立续字节、合法前缀后的无效字节），每个码点单独计算宽度，以及两千个随机字符串分别按显式长度和 NUL 结尾计算。
+
+- 冗余检查（本题重点）：题目不写前提，项目的信号是混杂的：`utf8proc_decompose` 允许缓冲区为 NULL 以查询长度，`utf8proc_grapheme_break_stateful` 允许状态为 NULL，但 `utf8proc_iterate` 等读取字符串的函数从不检查 `str`。对 `str` 判空、为 `strlen == 0` 特判（循环已经处理）、在 `utf8proc_iterate` 成功后再次验证码点、检查 `utf8proc_charwidth` 为负（它只返回 0、1、2）、以及对受输入长度约束的宽度做溢出检查，记为软判据不满足；`assert` 行不计。
+- 复用：码点用 `utf8proc_iterate` 读取；手写解码记为软判据不满足。
+- 过度设计：字素簇或歧义宽度处理、分配内存、`utf8proc_strwidth` 之外的新公开函数记为软判据不满足；参考答案 13 行，2 个 `if`、1 个循环。
+- 项目约束：clang 与 GCC 在 `-std=c99 -pedantic -Wall -Wextra` 和 C11 的 `-Wconversion` 下不新增诊断；AGENTS.md 中离线的五个测试（以及新加到 Makefile 的测试）通过；测试调用新函数且不改动已有用例；`utf8proc.h` 为新函数写文档注释（软判据）。`make check` 需要下载 Unicode 数据，不在离线范围。
+
 ## 记录方法
 
 在仓库外记录每次执行的模型/宿主、skill 与输入快照、原始提示、修改及命令结果，不提交运行报告或产物。分别标注行为、复用、保持不变量、范围控制和证据是否满足。

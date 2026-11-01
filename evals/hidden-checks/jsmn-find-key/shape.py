@@ -18,9 +18,13 @@ POINTERS = r"(?:js|json|tokens|toks?|token|key|name|str|s)"
 REDUNDANT = {
     "null pointer check": rf"\b{POINTERS}\s*[!=]=\s*(?:NULL|0|nullptr)\b|(?:NULL|nullptr)\s*[!=]=\s*{POINTERS}\b"
                           rf"|if\s*\(\s*!\s*{POINTERS}\s*(?:\)|\|\||&&)|\|\|\s*!\s*{POINTERS}\s*(?:\)|\|\|)",
-    "count check": r"\b(?:count|num_tokens|ntok\w*)\s*(?:<=?|==)\s*[01]\b|\b[01]\s*>=?\s*(?:count|num_tokens)\b",
+    "count check": r"\b(?:count|num_tokens|ntok\w*)\s*(?:<=?|==)\s*[01]\b|(?<![+-] )(?<![+-])\b[01]\s*>=?\s*(?:count|num_tokens)\b",
     "object index range check": r"\bobject\s*(?:<\s*0|>=?\s*count)|\bcount\s*<=?\s*object\b|\bobject\s*\+\s*1\s*>=?\s*count",
-    "token offset sanity check": r"\.(?:start|end)\s*<\s*0\b|\.end\s*<=?\s*[\w\[\]\.>()+-]*\.start\b|\.start\s*>=?\s*[\w\[\]\.>()+-]*\.end\s*\)\s*\{?\s*$",
+    "token offset sanity check": r"\.(?:start|end)\s*<\s*0\b|\.end\s*<=?\s*[\w\[\]\.>()+-]*\.start\b",
+    # A key with size > 0 has its value at the next index, inside the object; size == 0 says
+    # there is none. Testing the next index against count or the object's end again is redundant.
+    "value token re-checked against count or object end": r"\+\s*1\s*>=?\s*count\b|\bcount\s*<=?\s*\w+\s*\+\s*1\b"
+                                                          r"|\+\s*1\]\s*(?:\.|->)start\s*>=?",
     "undefined token check": r"JSMN_UNDEFINED",
     "negative size check": r"\.size\s*<\s*0\b|\.size\s*<=\s*-",
     "empty key special case": r"if\s*\(\s*(?:\*key|key\[0\])\s*==\s*'\\0'\s*\)|strlen\s*\(\s*key\s*\)\s*==\s*0",

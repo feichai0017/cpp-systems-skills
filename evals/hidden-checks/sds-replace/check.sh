@@ -64,5 +64,6 @@ extra=$(echo "$changed" | grep -v -E '^(sds\.[ch]|README\.md|Changelog)$' | tr '
 [ -z "${extra// }" ] && echo "HIT scope: changes stay in sds.c, sds.h, README and Changelog" || echo "MISS scope: also changes $extra"
 git -C "$ws" diff -U0 "$root" -- README.md | grep -a '^+[^+]' | grep -q 'sdsreplace' \
   && echo "HIT README documents sdsreplace" || echo "MISS README does not document sdsreplace"
+[ -f "$message" ] && python3 "$here/report.py" "$message"
 python3 "$common/style.py" --workspace "$ws"
 echo "INFO changed files: $(echo "$changed" | tr '\n' ' ')"

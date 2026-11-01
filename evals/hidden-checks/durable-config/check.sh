@@ -51,6 +51,21 @@ grep -a -q -E ':\s*public\s+(project::)?(fs::)?FileSystem\b' "$tmp/tests.diff" \
 errors=$(grep -a -o -E 'errc::[a-z_]+|\bE[A-Z]{2,}\b' "$tmp/tests.diff" | sort -u | tr '\n' ' ')
 echo "INFO errors the tests inject: ${errors:--}"
 git -C "$ws" diff -U0 "$root" -- check.cc | grep -a -q '^-[^-]' && echo "MISS check.cc changes existing lines" || echo "HIT check.cc only gains code"
+# Which failure paths the workspace's own check.cc detects: it passes against the reference
+# SaveConfig and fails against the mutant that ignores that failure.
+rm -rf "$tmp/mutants"; cp -R "$ws" "$tmp/mutants"; rm -f "$tmp/mutants/check"
+cp "$here/mutant_config_store.hpp" "$tmp/mutants/config_store.hpp"
+detected=""
+for n in 0 1 2 3 4; do
+  # The braces also silence the shell's report of an aborted test binary.
+  if { (cd "$tmp/mutants" && $CXX -std=c++20 -w -DMUTANT=$n check.cc -o "check-$n" && timeout 60 "./check-$n") >/dev/null 2>&1; } 2>/dev/null; then
+    [ "$n" -eq 0 ] || continue
+  else
+    [ "$n" -eq 0 ] && { detected=" not measured (own tests fail against the reference SaveConfig)"; break; }
+    detected="$detected $(echo "write file-sync rename directory-sync" | cut -d' ' -f"$n")"
+  fi
+done
+echo "INFO own tests detect ignored failures:${detected:- none}"
 
 # The comment on SaveConfig states the new guarantee.
 git -C "$ws" diff -U0 "$root" -- config_store.hpp | grep -a -E '^\+\s*//' | grep -q -i -E 'atomic|rename|temporar|crash|durab|原子|临时|崩溃|掉电' \

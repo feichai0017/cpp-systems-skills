@@ -29,7 +29,9 @@ SPECIAL = r"\bIsSpecial\s*\(|\bIsNan\s*\(|\bIsInfinite\s*\(|\bstd::isnan\b|\bstd
 def main() -> int:
     code = "\n".join(line for line in sys.stdin.read().splitlines()
                      if line.strip() and not re.match(r"\s*(//|/\*|\*)", line))
-    found = [name for name, pattern in REDUNDANT.items() if re.search(pattern, code, re.M)]
+    # The project states internal invariants with DOUBLE_CONVERSION_ASSERT; those are not checks.
+    checks = "\n".join(line for line in code.splitlines() if "ASSERT" not in line)
+    found = [name for name, pattern in REDUNDANT.items() if re.search(pattern, checks, re.M)]
     special = len(re.findall(SPECIAL, code))
     if special > 1:
         found.append(f"special values tested {special} times")

@@ -27,6 +27,8 @@ NULL_GUARD = re.compile(r"\bif\s*\(\s*!\s*[A-Za-z_][\w.\->]*\s*(\)|\|\||&&)|(==|
 
 
 def words(name: str) -> list[str]:
+    # A leading k on a constant (kMaxLength) is a style prefix, not a word.
+    name = re.sub(r"^k(?=[A-Z])", "", name)
     return [w for w in re.split(r"_|(?<=[a-z0-9])(?=[A-Z])", name) if w]
 
 

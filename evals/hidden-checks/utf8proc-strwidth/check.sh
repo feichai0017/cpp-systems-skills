@@ -58,8 +58,17 @@ else
   echo "FAIL no test calls utf8proc_strwidth"
 fi
 grep -a -q '^-[^-]' "$tmp/test.diff" && echo "MISS existing tests change lines" || echo "HIT existing tests only gain cases"
-grep -B8 -E 'utf8proc_strwidth\(' "$ws/utf8proc.h" | grep -q -E '^\s*/\*\*' \
-  && echo "HIT utf8proc.h documents utf8proc_strwidth" || echo "MISS utf8proc.h does not document utf8proc_strwidth"
+# A doc comment ends right above the declaration (blank lines aside), however long it is.
+python3 - "$ws/utf8proc.h" <<'PY'
+import re, sys
+lines = open(sys.argv[1], encoding="utf-8", errors="replace").read().splitlines()
+decl = next((i for i, l in enumerate(lines) if re.search(r"\butf8proc_strwidth\s*\(", l) and "UTF8PROC_DLLEXPORT" in l), None)
+i = (decl or 0) - 1
+while i >= 0 and not lines[i].strip():
+    i -= 1
+documented = decl is not None and i >= 0 and lines[i].rstrip().endswith("*/")
+print("HIT utf8proc.h documents utf8proc_strwidth" if documented else "MISS utf8proc.h does not document utf8proc_strwidth")
+PY
 
 # Redundant checks, reuse and machinery. Lines that only moved are not new code.
 git -C "$ws" diff -U0 "$root" -- utf8proc.c utf8proc.h | grep -a '^-[^-]' | cut -c2- | sort >"$tmp/removed.txt"

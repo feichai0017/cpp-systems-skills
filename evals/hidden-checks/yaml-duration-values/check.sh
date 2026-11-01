@@ -126,6 +126,7 @@ count() { echo "$new_code" | grep -c -E "$1"; }
 echo "INFO library adds $(echo "$new_code" | grep -c -v -E '^\s*(//.*)?$') lines: template $(count '^\s*template\s*<') struct/class $(count '^\s*(struct|class)\s+\w+') enable_if $(count 'enable_if') tag-dispatch $(count 'true_type|false_type|integral_constant|is_integral<|is_floating_point<') ratio_divide $(count 'ratio_divide') encode $(count 'encode\(')"
 echo "$new_code" | grep -q -E '(struct|class)\s+(\w*is_\w+|Is[A-Z]\w*|\w*_traits?|\w*Traits?)\b|:\s*(public\s+)?std::(true|false)_type' \
   && echo "MISS adds a type trait for duration" || echo "HIT no new type traits"
+echo "$new_code" | python3 "$common/duration_shape.py"
 echo "$new_code" | grep -q -E 'static Node encode\(' && echo "INFO also adds encode (writing was not requested)"
 
 changed=$(cd "$ws" && { git diff --name-only "$root"; git ls-files --others --exclude-standard; } | grep -v '^\.agents/' | sort -u)

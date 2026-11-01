@@ -112,6 +112,7 @@ count() { echo "$new_code" | grep -c -E "$1"; }
 echo "INFO header adds $(echo "$new_code" | grep -c -v -E '^\s*(//.*)?$') lines: template $(count '^\s*template\s*<') struct/class $(count '^\s*(struct|class)\s+\w+') enable_if $(count 'enable_if') tag-dispatch $(count 'true_type|false_type|integral_constant|is_integral<|is_floating_point<') ratio_divide $(count 'ratio_divide') table $(count 'std::(map|unordered_map|array|pair)<|\[\]\s*=\s*\{')"
 echo "$new_code" | grep -q -E '(struct|class)\s+(\w*is_\w+|Is[A-Z]\w*|\w*_traits?|\w*Traits?)\b|:\s*(public\s+)?std::(true|false)_type' \
   && echo "MISS adds a type trait for duration" || echo "HIT no new type traits"
+echo "$new_code" | python3 "$common/duration_shape.py"
 
 extra=$(echo "$changed" | grep -v -E '^(args\.hxx|test/.*|README\.md|CHANGELOG|meson\.build)$' | tr '\n' ' ')
 [ -z "${extra// }" ] && echo "HIT scope: changes stay in the header, tests, README, CHANGELOG and meson.build" || echo "MISS scope: also changes $extra"

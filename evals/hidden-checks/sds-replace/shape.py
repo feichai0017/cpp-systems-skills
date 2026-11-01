@@ -5,7 +5,8 @@ Usage: shape.py <workspace>. Reads the lines the workspace adds to sds.c before 
 SDS_TEST_MAIN section and to sds.h, in order. sds never checks its parameters for NULL
 (only allocation results), so NULL checks of s, from or to before they are reassigned are
 redundant, and so are special cases the general replacement loop already handles: an
-empty s, a pattern longer than s, or an empty replacement. The empty pattern is the one
+empty s or an empty replacement. An early return for a pattern longer than s is recorded
+only, since it guards loops bounded by len - fromlen. The empty pattern is the one
 case the contract needs. Redundant checks, reuse and machinery are soft criteria
 (HIT/MISS); counts are INFO for comparing arms.
 """
@@ -18,10 +19,10 @@ import sys
 
 SPECIAL_CASES = {
     "empty s": r"\bsdslen\s*\(\s*s\s*\)\s*==\s*0|\b(?:len|slen|s_len|oldlen|curlen)\s*==\s*0\b",
-    "pattern longer than s": r"\bfromlen\s*>\s*(?:sdslen\s*\(\s*s\s*\)|len|slen|s_len|oldlen|curlen)\b"
-                             r"|\b(?:sdslen\s*\(\s*s\s*\)|len|slen|s_len|oldlen|curlen)\s*<\s*fromlen\b",
     "empty replacement": r"\btolen\s*==\s*0\b|\b0\s*==\s*tolen\b|\bto\s*==\s*NULL\b",
 }
+LONGER = (r"\bfromlen\s*>\s*(?:sdslen\s*\(\s*s\s*\)|len|slen|s_len|oldlen|curlen)\b"
+          r"|\b(?:sdslen\s*\(\s*s\s*\)|len|slen|s_len|oldlen|curlen)\s*<\s*fromlen\b")
 PARAM_NULL = re.compile(r"\b(s|from|to)\s*[!=]=\s*NULL\b|\bNULL\s*[!=]=\s*(s|from|to)\b|!\s*(s|from|to)\b\s*(?:\)|\|\||&&)")
 
 
@@ -60,6 +61,10 @@ def main() -> int:
         assigned.update(re.findall(r"\b(s|from|to)\s*=[^=]", line))
     found += [name for name, pattern in SPECIAL_CASES.items() if re.search(pattern, code)]
     print("MISS redundant checks: " + ", ".join(found) if found else "HIT no redundant checks")
+    # fromlen > len guards a loop bounded by len - fromlen, which would wrap without it.
+    if re.search(LONGER, code):
+        print("INFO returns early when the pattern is longer than s")
+    print(f"INFO sdsreplace adds {len(lines)} lines (reference: 31)")
     print(f"INFO if statements {len(re.findall(r'\bif\s*\(', code))}, loops "
           f"{len(re.findall(r'\b(?:for|while)\s*\(', code))} (reference: 5 and 2)")
 

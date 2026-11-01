@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Reviewer-only checks for the args-duration-values fixture. Usage: check.sh <workspace> [final message]
 # CXX must support AddressSanitizer. The imported original is taken from the workspace's root commit.
-set -uo pipefail
+# No pipefail: pipelines end in grep -q, which closes the pipe on the first match.
+set -u
 ws="$(cd "$1" && pwd)"; here="$(cd "$(dirname "$0")" && pwd)"; common="$here/../common"
 message="${2:-}"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
@@ -78,7 +79,7 @@ mkdir "$tmp/mixed" && cp -R "$tmp/orig/." "$tmp/mixed" && cp "$ws/args.hxx" "$tm
 project_test "original tests pass with the new header" "$tmp/mixed"
 changed=$(cd "$ws" && { git diff --name-only "$root"; git ls-files --others --exclude-standard; } | grep -v '^\.agents/' | sort -u)
 tests=$(echo "$changed" | grep -E '^test/.*\.(cxx|hxx)$')
-if [ -n "$tests" ] && (cd "$ws" && cat $tests) | grep -q -E 'chrono|duration|milliseconds'; then
+if [ -n "$tests" ] && (cd "$ws" && grep -q -E 'chrono|duration|milliseconds' $tests); then
   echo "PASS tests cover duration values"
 else
   echo "FAIL no test covers duration values"
@@ -90,16 +91,18 @@ git -C "$ws" diff -U0 "$root" -- test | grep -a -q '^-[^-]' && echo "MISS existi
 git -C "$ws" diff -U0 "$root" -- args.hxx | grep -a '^-[^-]' | cut -c2- | sort >"$tmp/removed.txt"
 git -C "$ws" diff -U0 "$root" -- args.hxx | grep -a '^+[^+]' | cut -c2- | sort >"$tmp/added.txt"
 new_code=$(comm -13 "$tmp/removed.txt" "$tmp/added.txt")
-if echo "$new_code" | grep -q -E 'std::sto(i|l|ll|ul|ull|f|d|ld)\b|\bstrto(l|ll|ul|ull|d|f|ld|imax|umax)\b|from_chars|std::regex|regex_match|sscanf|\b(i|o)?stringstream\b'; then
-  echo "MISS count parsing re-implemented: $(echo "$new_code" | grep -m1 -o -E 'std::sto[a-z]*|strto[a-z]*|from_chars|std::regex|regex_match|sscanf|\b(i|o)?stringstream\b')"
+if echo "$new_code" | grep -q -E 'std::sto(i|l|ll|ul|ull|f|d|ld)\b|\bstrto(l|ll|ul|ull|d|f|ld|imax|umax)\b|from_chars|std::regex|regex_match|sscanf|\b(std::)?(i)?stringstream\b'; then
+  echo "MISS count parsing re-implemented: $(echo "$new_code" | grep -m1 -o -E 'std::sto[a-z]*|strto[a-z]*|from_chars|std::regex|regex_match|sscanf|\b(std::)?(i)?stringstream\b')"
 elif echo "$new_code" | grep -v -E 'const std::string ?& ?\w+, ?std::chrono' | grep -q -E '\bParseNumericValue\(|\(\*this\)\(|\breader\('; then
   echo "HIT count parsed by the existing ParseNumericValue for Rep"
 else
   echo "MISS count parsing does not go through ParseNumericValue"
 fi
-removed=$(comm -23 "$tmp/removed.txt" "$tmp/added.txt" | grep -c -v -E '^\s*$')
+# Comment lines describing ValueReader may be updated for the new type; code lines are graded.
+code_removed() { comm -23 "$tmp/removed.txt" "$tmp/added.txt" | grep -v -E '^\s*$|^\s*(\*|//|/\*)'; }
+removed=$(code_removed | grep -c .)
 [ "$removed" -eq 0 ] && echo "HIT header changes only add code" \
-  || echo "MISS header changes $removed existing lines: $(comm -23 "$tmp/removed.txt" "$tmp/added.txt" | grep -v -E '^\s*$' | head -1 | sed -E 's/^\s+//' | cut -c1-100)"
+  || echo "MISS header changes $removed existing lines: $(code_removed | head -1 | sed -E 's/^\s+//' | cut -c1-100)"
 
 # Shape of the generic code. The unit ratios are compile-time constants: std::ratio_divide reduces
 # them, so a hand-written greatest common divisor is re-implementing the standard library.
@@ -107,7 +110,7 @@ echo "$new_code" | grep -v 'std::gcd' | grep -q -i -E '\bgcd\b|greatest_?common|
   && echo "MISS hand-writes a greatest common divisor" || echo "HIT no hand-written greatest common divisor"
 count() { echo "$new_code" | grep -c -E "$1"; }
 echo "INFO header adds $(echo "$new_code" | grep -c -v -E '^\s*(//.*)?$') lines: template $(count '^\s*template\s*<') struct/class $(count '^\s*(struct|class)\s+\w+') enable_if $(count 'enable_if') tag-dispatch $(count 'true_type|false_type|integral_constant|is_integral<|is_floating_point<') ratio_divide $(count 'ratio_divide') table $(count 'std::(map|unordered_map|array|pair)<|\[\]\s*=\s*\{')"
-echo "$new_code" | grep -q -E '(struct|class)\s+\w*(is_|_trait|Trait)\w*|:\s*(public\s+)?std::(true|false)_type' \
+echo "$new_code" | grep -q -E '(struct|class)\s+(\w*is_\w+|Is[A-Z]\w*|\w*_traits?|\w*Traits?)\b|:\s*(public\s+)?std::(true|false)_type' \
   && echo "MISS adds a type trait for duration" || echo "HIT no new type traits"
 
 extra=$(echo "$changed" | grep -v -E '^(args\.hxx|test/.*|README\.md|CHANGELOG|meson\.build)$' | tr '\n' ' ')

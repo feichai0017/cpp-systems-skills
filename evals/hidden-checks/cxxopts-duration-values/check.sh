@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Reviewer-only checks for the cxxopts-duration-values fixture. Usage: check.sh <workspace> [final message]
 # CXX must support AddressSanitizer. The imported original is taken from the workspace's root commit.
-set -uo pipefail
+# No pipefail: pipelines end in grep -q, which closes the pipe on the first match.
+set -u
 ws="$(cd "$1" && pwd)"; here="$(cd "$(dirname "$0")" && pwd)"; common="$here/../common"
 message="${2:-}"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
@@ -96,8 +97,8 @@ git -C "$ws" diff -U0 "$root" -- test/options.cpp | grep -a -q '^-[^-]' \
 git -C "$ws" diff -U0 "$root" -- include/cxxopts.hpp | grep -a '^-[^-]' | cut -c2- | sort >"$tmp/removed.txt"
 git -C "$ws" diff -U0 "$root" -- include/cxxopts.hpp | grep -a '^+[^+]' | cut -c2- | sort >"$tmp/added.txt"
 new_code=$(comm -13 "$tmp/removed.txt" "$tmp/added.txt")
-if echo "$new_code" | grep -q -E 'std::sto(i|l|ll|ul|ull|f|d|ld)\b|\bstrto(l|ll|ul|ull|d|f|ld|imax|umax)\b|from_chars|std::regex|regex_match|sscanf|\b(i|o)?stringstream\b'; then
-  echo "MISS count parsing re-implemented: $(echo "$new_code" | grep -m1 -o -E 'std::sto[a-z]*|strto[a-z]*|from_chars|std::regex|regex_match|sscanf|\b(i|o)?stringstream\b')"
+if echo "$new_code" | grep -q -E 'std::sto(i|l|ll|ul|ull|f|d|ld)\b|\bstrto(l|ll|ul|ull|d|f|ld|imax|umax)\b|from_chars|std::regex|regex_match|sscanf|\b(std::)?(i)?stringstream\b'; then
+  echo "MISS count parsing re-implemented: $(echo "$new_code" | grep -m1 -o -E 'std::sto[a-z]*|strto[a-z]*|from_chars|std::regex|regex_match|sscanf|\b(std::)?(i)?stringstream\b')"
 elif echo "$new_code" | grep -v -E 'const std::string ?& ?\w+, ?std::chrono' | grep -q -E '\b(parse_value|integer_parser|stringstream_parser)\('; then
   echo "HIT count parsed by the existing parse_value for Rep"
 else
@@ -124,7 +125,7 @@ echo "$new_code" | grep -v 'std::gcd' | grep -q -i -E '\bgcd\b|greatest_?common|
   && echo "MISS hand-writes a greatest common divisor" || echo "HIT no hand-written greatest common divisor"
 count() { echo "$new_code" | grep -c -E "$1"; }
 echo "INFO header adds $(echo "$new_code" | grep -c -v -E '^\s*(//.*)?$') lines: template $(count '^\s*template\s*<') struct/class $(count '^\s*(struct|class)\s+\w+') enable_if $(count 'enable_if') tag-dispatch $(count 'true_type|false_type|integral_constant|is_integral<|is_floating_point<') lambda $(count '\[[&=]?\]\s*\(') table $(count 'std::(map|unordered_map|array|pair)<|\[\]\s*=\s*\{')"
-echo "$new_code" | grep -q -E '(struct|class)\s+\w*(is_|_trait|Trait)\w*|:\s*(public\s+)?std::(true|false)_type' \
+echo "$new_code" | grep -q -E '(struct|class)\s+(\w*is_\w+|Is[A-Z]\w*|\w*_traits?|\w*Traits?)\b|:\s*(public\s+)?std::(true|false)_type' \
   && echo "MISS adds a type trait for duration" || echo "HIT no new type traits"
 
 changed=$(cd "$ws" && { git diff --name-only "$root"; git ls-files --others --exclude-standard; } | grep -v '^\.agents/' | sort -u)

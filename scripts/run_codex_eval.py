@@ -147,6 +147,9 @@ def main() -> int:
 
     with tempfile.TemporaryDirectory(prefix="codex-home-") as home:
         codex_env = dict(env)
+        # Parallel runs must not share fixed names under the temporary directory.
+        (Path(home) / "tmp").mkdir()
+        codex_env["TMPDIR"] = str(Path(home) / "tmp") + "/"
         if not args.shared_home:
             isolated_home(Path(home))
             codex_env["CODEX_HOME"] = home
@@ -168,6 +171,7 @@ def main() -> int:
         "fixture": args.fixture, "arm": arm, "trial": args.trial, "skills": skills if args.arm == "skills" else [],
         "exit_code": exit_code, "seconds": seconds, "codex": codex_version, "effort": args.effort,
         "model": args.model, "cxx": args.cxx, "codex_home": "shared" if args.shared_home else "isolated",
+        "tmpdir": "isolated",
         "login_refreshed": refreshed,
         "skills_commit": rev or run(["git", "rev-parse", "HEAD"], cwd=REPO).stdout.strip(),
         "skills_modified": rev is None and bool(run(["git", "status", "--porcelain", "--", "skills"], cwd=REPO).stdout),

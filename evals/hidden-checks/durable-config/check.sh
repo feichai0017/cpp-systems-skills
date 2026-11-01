@@ -6,6 +6,8 @@ set -u
 ws="$(cd "$1" && pwd)"; here="$(cd "$(dirname "$0")" && pwd)"; common="$here/../common"
 message="${2:-}"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
+# check.cc and the hidden test use fixed names under the temporary directory; graders run in parallel.
+mkdir "$tmp/tmpdir" && export TMPDIR="$tmp/tmpdir/"
 CXX="${CXX:-c++}"
 root="$(git -C "$ws" rev-list --max-parents=0 HEAD)"
 mkdir "$tmp/orig" && git -C "$ws" archive "$root" | tar -x -C "$tmp/orig"

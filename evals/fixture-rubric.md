@@ -241,6 +241,15 @@
 - 过度设计：借用 `printf` 或字符串流格式化、模板、`ToHexadecimal` 之外的新公开方法，记为软判据不满足；行数只记录（参考答案 42 行，6 个 `if`、3 个循环）。
 - 项目约束：库源码在 clang 与 GCC 的 `-std=c++98 -pedantic -Wall -Wextra` 和 C++11 的 `-Wshadow -Wconversion` 下不新增诊断；ctest 与原始测试都通过；头文件为新方法写说明注释（软判据）。仓库根目录有 Bazel 的 `BUILD` 文件，在不区分大小写的文件系统上与 `build/` 冲突，所以 AGENTS.md 使用 `cmake-build/`。
 
+## sds-replace
+
+隐藏检查：`hidden-checks/sds-replace/check.sh`。探针把工作区的 `sds.c`、`sds.h` 复制到评审自己的 `sdsalloc.h` 旁边编译（`sds.c` 按名字包含同目录的 `sdsalloc.h`），用计数分配器在 ASan/UBSan 下运行：17 组替换与朴素实现比较，结果以 NUL 结尾、可以继续 `sdscatlen`、没有多余的存活分配；结果跨过 255 与 65535 字节时头部类型正确；第 1 到第 8 次分配逐次失败时返回 NULL 或正确结果；15 万次替换在 2 秒内完成（软判据）。
+
+- 冗余检查（本题重点）：题目不写前提。sds 从不检查参数是否为 NULL，只检查分配结果；所以在被重新赋值之前对 `s`、`from`、`to` 判空，以及通用循环已经能处理的特例（空的 `s`、模式比 `s` 长、空的替换串），都记为软判据不满足。空模式是合同要求处理的唯一特例；`assert` 行不计。
+- 复用：结果用 `sdsnewlen`、`sdsMakeRoomFor`、`sdscatlen` 等已有函数构造；直接调用 `s_malloc`/`s_realloc` 或改写 sds 头部记为软判据不满足。
+- 过度设计：`sdsreplace` 之外的新公开函数、非标准的 `memmem` 记为软判据不满足；`if` 与循环数量、行数只记录（参考答案 39 行，5 个 `if`、2 个循环）。
+- 项目约束：clang 与 GCC 在 `-std=c99 -pedantic -Wall -Wextra` 下（含与不含 `SDS_TEST_MAIN`）不新增诊断；`make && ./sds-test` 通过；`sds.h` 声明新函数；测试段新增 `test_cond` 且 `sds.c` 只新增代码；README 记录 `sdsreplace` 为软判据。
+
 ## 记录方法
 
 在仓库外记录每次执行的模型/宿主、skill 与输入快照、原始提示、修改及命令结果，不提交运行报告或产物。分别标注行为、复用、保持不变量、范围控制和证据是否满足。

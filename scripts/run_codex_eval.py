@@ -6,6 +6,11 @@ repository. The executor only receives the fixture files, the TASK.md text as
 its prompt and, for the skills arm, a copy of the selected skills under
 .agents/skills, taken from the working tree or from --skills-rev. Rubrics and
 hidden checks are never copied into the workspace.
+
+Codex runs with a temporary CODEX_HOME and HOME: the first holds only the login
+and the model setting, the second is empty, so the user's memories, personal
+skills (~/.codex/skills, ~/.agents/skills), AGENTS.md, plugins and MCP servers
+reach neither arm. PATH is kept. --shared-home runs with the user's own homes.
 """
 
 from __future__ import annotations
@@ -14,8 +19,10 @@ import argparse
 import json
 import os
 import shutil
+import re
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -27,6 +34,15 @@ SKILLS = REPO / "skills"
 
 def run(cmd: list[str], cwd: Path, **kwargs) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, cwd=cwd, check=True, text=True, capture_output=True, **kwargs)
+
+
+def isolated_home(home: Path) -> None:
+    """Fills home with the user's login and model, and nothing else from their Codex setup."""
+    user_home = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))
+    shutil.copy2(user_home / "auth.json", home / "auth.json")
+    config = (user_home / "config.toml").read_text()
+    model = re.search(r'^model\s*=\s*"[^"]*"', config, re.M)
+    (home / "config.toml").write_text((model.group(0) + "\n" if model else "") + "\n[features]\nmemories = false\n")
 
 
 def available_skills(rev: str | None) -> list[str]:
@@ -83,6 +99,7 @@ def main() -> int:
     parser.add_argument("--cxx", help="value of CXX in the executor's environment")
     parser.add_argument("--grade", action="store_true", help="run the fixture's hidden check afterwards")
     parser.add_argument("--dry-run", action="store_true", help="prepare the workspace without running Codex")
+    parser.add_argument("--shared-home", action="store_true", help="run with the user's HOME and CODEX_HOME instead of temporary ones")
     args = parser.parse_args()
 
     if not (FIXTURES / args.fixture).is_dir():
@@ -128,10 +145,21 @@ def main() -> int:
     if args.cxx:
         env["CXX"] = args.cxx
 
-    started = time.time()
-    with (run_dir / "events.jsonl").open("w") as events, (run_dir / "stderr.txt").open("w") as stderr:
-        exit_code = subprocess.run(cmd, cwd=workspace, env=env, stdout=events, stderr=stderr).returncode
-    seconds = round(time.time() - started)
+    with tempfile.TemporaryDirectory(prefix="codex-home-") as home:
+        codex_env = dict(env)
+        if not args.shared_home:
+            isolated_home(Path(home))
+            codex_env["CODEX_HOME"] = home
+            codex_env["HOME"] = home
+        started = time.time()
+        with (run_dir / "events.jsonl").open("w") as events, (run_dir / "stderr.txt").open("w") as stderr:
+            exit_code = subprocess.run(cmd, cwd=workspace, env=codex_env, stdout=events, stderr=stderr).returncode
+        seconds = round(time.time() - started)
+        refreshed = not args.shared_home and (Path(home) / "auth.json").read_bytes() != \
+            Path(env.get("CODEX_HOME", Path.home() / ".codex"), "auth.json").read_bytes()
+    if refreshed:
+        print("warning: Codex refreshed the login inside the temporary CODEX_HOME; log in again if the "
+              "user's session stops working", file=sys.stderr)
     (run_dir / "diff.patch").write_bytes(collect_diff(workspace))
 
     events_text = (run_dir / "events.jsonl").read_text()
@@ -139,7 +167,8 @@ def main() -> int:
     metadata = {
         "fixture": args.fixture, "arm": arm, "trial": args.trial, "skills": skills if args.arm == "skills" else [],
         "exit_code": exit_code, "seconds": seconds, "codex": codex_version, "effort": args.effort,
-        "model": args.model, "cxx": args.cxx,
+        "model": args.model, "cxx": args.cxx, "codex_home": "shared" if args.shared_home else "isolated",
+        "login_refreshed": refreshed,
         "skills_commit": rev or run(["git", "rev-parse", "HEAD"], cwd=REPO).stdout.strip(),
         "skills_modified": rev is None and bool(run(["git", "status", "--porcelain", "--", "skills"], cwd=REPO).stdout),
         "skill_files_read": sorted({name for name in skills if f".agents/skills/{name}/SKILL.md" in events_text}),

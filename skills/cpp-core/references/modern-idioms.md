@@ -75,7 +75,10 @@ struct FileCloser {
 using UniqueFile = std::unique_ptr<std::FILE, FileCloser>;
 ```
 
-  不要写 `decltype(&std::fclose)`：C++20 起取标准库函数地址不再是有保证的行为，删除器 struct 也不占额外空间。
+  删除器总是写成 struct，包括包装项目自己或第三方的释放函数时：
+  - 空的删除器 struct 不占空间，`unique_ptr` 与裸指针一样大；函数指针删除器（`decltype(&CloseRegion)`）要额外存一个指针，在 64 位平台上使 `unique_ptr` 从 8 字节变成 16 字节（libstdc++ 与 libc++ 实测相同）。
+  - struct 的调用可以被内联；函数指针删除器在每次释放时多一次间接调用，并且可能被构造成空指针。
+  - 对标准库函数还有额外原因：C++20 起取标准库函数的地址不是有保证的行为，`decltype(&std::fclose)` 不可移植。
 
 - 确需自定义 owner 时，同时决定五个特殊成员，移动操作 `noexcept`，moved-from 状态有定义：
 
@@ -193,6 +196,7 @@ constexpr T AlignUp(T value, T alignment) {
 
 - 不为普通函数引入模板；模板只服务于确实需要的泛型。CRTP、表达式模板和元编程只在当前问题需要时使用。
 - 模板实现放在头文件；只用于少数已知类型时，可在 `.cc` 中显式实例化以缩短编译时间。
+- 何时使用模板、各标准下的约束写法、编译时间控制和常见过度写法，见 [泛型与模板元编程](generic-programming.md)。
 
 ## 并发
 
@@ -202,7 +206,34 @@ constexpr T AlignUp(T value, T alignment) {
 - 原子变量默认使用顺序一致内存序；使用 `relaxed`/`acquire`/`release` 时，注释写清配对的同步关系。
 - 不用 `volatile` 做线程同步，不用 `sleep` 等待状态，不手写双重检查加锁；一次性初始化用函数内 `static` 或 `std::call_once`。
 
+## 旧标准与受限库范围
+
+老项目常在 README、构建选项或配置宏中写明移植约束，例如关闭 STL 的开关、`-ansi`/`-std=c++98`、`-fno-exceptions`，或要求 `.cpp` 改名为 `.c` 后仍能编译。这些约束优先于本文其他小节；在约束内仍然把资源交给 owner、消除重复、检查每个返回值。
+
+- **C++98/03**：没有 `nullptr`、`auto`、range-for、lambda、`override`、移动语义和 `std::unique_ptr`。owner 写成不可复制的类：析构释放，复制构造与赋值声明为私有且不定义；空指针沿用项目的 `0` 或 `NULL`；内部辅助函数放匿名命名空间或写成 `static`。
+- **关闭 STL**：用项目自己的字符串和动态数组（例如 TinyXML 的 `TIXML_STRING`），不 include `<vector>`、`<string>`、`<memory>`、`<algorithm>`；`<string.h>` 等 C 头文件照常使用。
+- **与 C 共用的源文件**：C 部分保持项目要求的 C 标准，C++ 代码留在项目已有的 C++ 区段（如 `#ifdef __cplusplus` 或项目的编译开关）内。辅助代码的定义与使用放在同一组条件编译下，否则某些配置会出现未使用的 `static` 函数；只供 owner 使用的逻辑写成成员函数可以避免这个问题。
+- **无异常**：不写 `try`/`catch`，不依赖抛出来传播失败，沿用项目的返回码；RAII 仍然适用。
+- **验证**：libc++ 在 `-std=c++98` 下仍提供 `std::unique_ptr` 等后续标准的类型，编译通过不代表符合标准。用 `-pedantic-errors` 检查语言特性，用 GCC 的 libstdc++ 检查库用法，并按项目文档列出的配置宏逐一构建。
+
+```cpp
+// C++98：不可复制的文件 owner。成员命名随项目约定。
+class FileCloser {
+ public:
+  explicit FileCloser(FILE* file) : file_(file) {}
+  ~FileCloser() { if (file_) fclose(file_); }
+  FILE* get() const { return file_; }
+
+ private:
+  FileCloser(const FileCloser&);             // 不定义：禁止复制
+  FileCloser& operator=(const FileCloser&);  // 不定义：禁止赋值
+  FILE* file_;
+};
+```
+
 ## AI 常见旧式写法对照
+
+以下替换以 C++11 及以上、可用标准库为前提；受限项目见上一节。
 
 | 常见写法 | 替换为 |
 | --- | --- |
@@ -212,6 +243,11 @@ constexpr T AlignUp(T value, T alignment) {
 | 只有一个实现的接口类 + `Impl` | 具体类；需要替身或多实现时再引入接口 |
 | 每个字段都有 getter/setter | 字段独立的数据用 `struct`；有不变量的类只暴露有语义的操作 |
 | `Manager`/`Helper`/`Util` 类收集无关函数 | 按职责命名的自由函数或类型 |
+| 单一路径也写接口、工厂、多个后端或配置开关 | 直接写具体实现；出现第二个实现或替换需求时再抽象 |
+| 每个函数开头判空，重复检查调用方已保证的条件 | 在建立前提的边界检查一次，内部不变量用项目断言 |
+| 先手写语法校验器，再调用 `strtol`/`strtod` 解析一遍 | 只解析一次，用结束位置和错误码判断是否合法 |
+| `EnsureValid()`、`TryParse()`、`SafeRead()`、`HandleX()` | 按行为命名：`Parse()`、`Read()`，判断用 `IsValid()` |
+| 文件内部函数重复库名或类名前缀，如 `TiXmlGetFileSize` | 由作用域提供上下文：`GetFileSize` |
 | `const std::string&` 参数进来再拷贝保存 | 按值接收后 `std::move` |
 | 输出参数 `bool F(T* out)` | 返回 `Result<T>`/`std::optional<T>` |
 | `atoi`/`stoi`/`sprintf` | `std::from_chars`、`std::format`/`fmt` |

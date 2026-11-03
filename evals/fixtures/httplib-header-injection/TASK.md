@@ -1,0 +1,1 @@
+用户报告：`cli.Post("/api", body, content_type)` 的 `content_type` 来自外部输入时，传入 `"text/plain\r\nX-Injected: 1"` 会让发出的请求多出一个 `X-Injected` 头（CRLF 注入，CVE-2023-26130）。修复：客户端发出的请求中不能出现名称或值含 CR 或 LF 的头部，这样的头部直接丢弃，请求照常发送，与 `Request::set_header` 的现有行为一致。补充相应的测试。

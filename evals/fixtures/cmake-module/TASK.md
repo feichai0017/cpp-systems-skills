@@ -1,0 +1,1 @@
+新增一个读取段数据的接口 `kvstore::storage::ReadRecords`，返回 `Result<std::vector<Record>>`，供 `kvstore_storage` 的使用者调用。段数据在内存中，由连续的记录组成，每条记录是 4 字节小端长度、4 字节小端 CRC32（只覆盖数据部分），后面跟着数据。每条 `Record` 的 `payload` 是指向输入数据的 `std::span<const std::byte>`，不复制数据。数据不完整时返回 `ErrorCode::kTruncated`，校验不通过时返回 `ErrorCode::kCorrupted`。补充测试。

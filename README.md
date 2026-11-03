@@ -1,8 +1,8 @@
 # cpp-systems-skills
 
-面向 C++ 服务、缓存、存储与推理基础设施的 Agent Skills。日常编码在项目的 C++ 标准内使用现代写法，以简化实现、代码规范和语义命名为重点，正确组织头文件、源文件与构建依赖，保留必要的所有权、错误与并发边界；评审与性能结论须有可检查的证据。
+面向 C/C++ 服务、缓存、存储与推理基础设施的 Agent Skills。日常编码在项目的 C 或 C++ 标准内编写，C++ 使用现代写法，以简化实现、代码规范和语义命名为重点，正确组织头文件、源文件与构建依赖，保留必要的所有权、错误与并发边界；评审与性能结论须有可检查的证据。
 
-[现代 C++ 写法](skills/cpp-core/references/modern-idioms.md) 按 C++17/20/23 列出可用设施、参数与所有权写法和常见旧式写法的替换；[设计范式](skills/cpp-core/references/design-paradigms.md) 说明值语义、构造即有效、RAII owner、选项结构、variant 状态、依赖注入、不可变快照与 Pimpl 的适用前提。[项目结构与文件摆放](skills/cpp-core/references/project-layout.md)、[CMake 参考](skills/cpp-core/references/build-cmake.md) 和 [Blade 参考](skills/cpp-core/references/build-blade.md) 覆盖目录布局、include 规则、模块分层、目标与依赖声明、第三方依赖管理和常用命令。推荐示例在 clang 22 与 GCC 14 下编译通过，CMake 示例项目完成过配置、构建、测试与安装导出。
+[现代 C++ 写法](skills/cpp-core/references/modern-idioms.md) 按 C++17/20/23 列出可用设施、参数与所有权写法和常见旧式写法的替换；[设计范式](skills/cpp-core/references/design-paradigms.md) 说明值语义、构造即有效、RAII owner、选项结构、variant 状态、依赖注入、不可变快照与 Pimpl 的适用前提。[泛型与模板元编程](skills/cpp-core/references/generic-programming.md) 说明何时值得写模板、C++98 到 C++20 的约束写法、编译时间控制和常见的过度写法。[项目结构与文件摆放](skills/cpp-core/references/project-layout.md)、[CMake 参考](skills/cpp-core/references/build-cmake.md) 和 [Blade 参考](skills/cpp-core/references/build-blade.md) 覆盖目录布局、include 规则、模块分层、目标与依赖声明、第三方依赖管理和常用命令。推荐示例在 clang 22 与 GCC 14 下编译通过，CMake 示例项目完成过配置、构建、测试与安装导出。
 
 以 [DuckDB 的工程实践](skills/cpp-core/references/duckdb.md) 为主要 C++ 参考，重点吸收断言边界、安全包装、pin 生命周期与数据表示设计；项目已有错误策略、基础类型和格式仍优先。
 
@@ -16,7 +16,7 @@
 
 | 技能 | 使用场景 | 关键约束 |
 | --- | --- | --- |
-| [cpp-core](skills/cpp-core/SKILL.md) | 日常编写、修改 C++，新增文件与构建依赖 | 项目标准内的现代写法、简化实现、项目规范、准确命名；正确的文件位置与公开/私有依赖；先复用现有能力，保留必要安全边界 |
+| [cpp-core](skills/cpp-core/SKILL.md) | 日常编写、修改 C 和 C++，新增文件与构建依赖 | 项目标准内的现代写法、简化实现、项目规范、准确命名；正确的文件位置与公开/私有依赖；先复用现有能力，保留必要安全边界 |
 | [cpp-lifetime](skills/cpp-lifetime/SKILL.md) | 生命周期、异步、并发、SHM 与 I/O | 借用有效期、发布与回收、取消/完成竞争、跨边界合同 |
 | [cpp-simplify](skills/cpp-simplify/SKILL.md) | 精简代码、清理冗余检查与包装 | 删除检查需要保证来源；抽象按职责判断，不按调用次数 |
 | [cpp-review](skills/cpp-review/SKILL.md) | PR/MR、堆叠分支、本地改动评审 | 真实 base、分层 diff、有触发条件和影响的发现 |
@@ -33,6 +33,7 @@
 | --- | --- |
 | 现代写法、按标准的设施、常见旧式写法替换 | `cpp-core` · [现代 C++ 写法](skills/cpp-core/references/modern-idioms.md) |
 | 类型与模块设计范式 | `cpp-core` · [设计范式](skills/cpp-core/references/design-paradigms.md) |
+| 模板、concepts、traits、编译期计算、CRTP 与类型擦除 | `cpp-core` · [泛型与模板元编程](skills/cpp-core/references/generic-programming.md) |
 | 错误模型、系统错误、异常安全、`noexcept` | `cpp-core` · [错误处理](skills/cpp-core/references/error-handling.md) |
 | 目录布局、头文件与 include 规则、模块分层 | `cpp-core` · [项目结构](skills/cpp-core/references/project-layout.md) |
 | CMake 目标、依赖管理、presets、安装导出 | `cpp-core` · [CMake](skills/cpp-core/references/build-cmake.md) |

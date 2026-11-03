@@ -1,0 +1,1 @@
+用户报告 `XMLElement::QueryIntAttribute` 把 `value="12abc"` 读成 12 并返回成功，`QueryUnsignedAttribute` 把 `"-1"` 读成 4294967295，超出 `int` 范围的值结果也不确定。修复属性和文本的数值读取：整个值必须是合法的十进制数并且在目标类型的范围内，前后的空白仍然允许；失败时返回原来的错误码，并且不修改输出参数。在 `xmltest.cpp` 中补充测试。

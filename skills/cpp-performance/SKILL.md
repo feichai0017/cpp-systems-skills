@@ -1,6 +1,6 @@
 ---
 name: cpp-performance
-description: "C++ 延迟、吞吐、内存或数据搬运优化，benchmark/profiler 分析与基线实验。追踪真实成本和可比测量；普通代码编辑不自动启动性能工程。"
+description: "C/C++ 延迟、吞吐、内存或数据搬运优化，benchmark/profiler 分析与基线实验。追踪真实成本和可比测量；普通代码编辑不自动启动性能工程。"
 ---
 
 # C++ 性能分析
